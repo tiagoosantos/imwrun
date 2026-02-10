@@ -8,9 +8,9 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 
-from config import BOT_TOKEN, CHAT_ID, GROUP_ID
+from config.settings import BOT_TOKEN, CHAT_ID, GROUP_ID
 
-from log_handlers import (
+from utils.logging.log_handlers import (
     BatchEmailHandler_gmail,
     BatchEmailHandler_nox,
     BatchEmailHandler_prodam,
@@ -91,7 +91,7 @@ class HandlerConfig:
 
             telegram_chat_handler = TelegramHandler(BOT_TOKEN, CHAT_ID)
             telegram_chat_handler.setFormatter(formatter_chat)
-            telegram_chat_handler.setLevel(logging.INFO)
+            telegram_chat_handler.setLevel(logging.ERROR)
             log.addHandler(telegram_chat_handler)
 
             # =======================
@@ -100,7 +100,7 @@ class HandlerConfig:
 
             telegram_group_handler = TelegramHandler(BOT_TOKEN, GROUP_ID)
             telegram_group_handler.setFormatter(formatter_chat)
-            telegram_group_handler.setLevel(logging.ERROR)
+            telegram_group_handler.setLevel(logging.CRITICAL)
             # log.addHandler(telegram_group_handler)
 
             log.propagate = False
