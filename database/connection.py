@@ -1,13 +1,4 @@
-# import psycopg2
-# def get_connection():
-#     return psycopg2.connect(
-#         host="localhost",
-#         database="corridas",
-#         user="usuario",
-#         password="senha",
-#     )
-# 
-# 
+# %%
 import psycopg2
 from config.settings import (IMW_HOST, IMW_USER, IMW_PASS, IMW_PORT, IMW_DB)
 
