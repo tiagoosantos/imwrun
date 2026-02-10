@@ -1,5 +1,5 @@
 from telebot import TeleBot
-
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 from config.settings import BOT_TOKEN
 from service.corrida_service import CorridaService
 from service.usuario_service import UsuarioService
@@ -62,15 +62,53 @@ def start(message):
     )
 
     texto = (
-        "🏃 *Runner Bot*\n\n"
-        "/registrar – Registrar treino\n"
-        "/pace – Calcular pace\n"
-        "/ranking_km – Ranking por KM\n"
-        "/ranking_km_pg <pagina> – Ranking por KM paginado\n"
-        "/ranking_tempo – Ranking por tempo\n"
-        "/relatorio – Relatório mensal\n"
+        "🏃 *Bem-vindo ao IMW Runner!*\n\n"
+        "Aqui você registra treinos e acompanha rankings de corrida.\n\n"
+        "*Escolha uma ação:*"
     )
-    bot.send_message(message.chat.id, texto, parse_mode="Markdown")
+
+    markup = InlineKeyboardMarkup(row_width=2)
+    markup.add(
+        InlineKeyboardButton("🏃 Registrar treino", callback_data="cmd_registrar"),
+        InlineKeyboardButton("🏆 Ranking por KM", callback_data="cmd_ranking_km"),
+        InlineKeyboardButton("⏱ Calcular pace", callback_data="cmd_pace"),
+        InlineKeyboardButton("📄 Relatório mensal", callback_data="cmd_relatorio"),
+    )
+
+    bot.send_message(
+        message.chat.id,
+        texto,
+        reply_markup=markup,
+        parse_mode="Markdown",
+    )
+
+@bot.callback_query_handler(func=lambda call: True)
+def callbacks(call):
+    bot.answer_callback_query(call.id)
+
+    chat_id = call.message.chat.id
+    user = call.from_user
+
+    comandos = {
+        "cmd_registrar": "/registrar",
+        "cmd_ranking_km": "/ranking_km",
+        "cmd_pace": "/pace",
+        "cmd_relatorio": "/relatorio",
+    }
+
+    comando = comandos.get(call.data)
+    if not comando:
+        return
+
+    # cria uma mensagem "fake" com o comando
+    fake_message = call.message
+    fake_message.text = comando
+    fake_message.from_user = user
+    fake_message.chat = call.message.chat
+
+    # processa como se o usuário tivesse digitado
+    bot.process_new_messages([fake_message])
+
 
 # =======================
 # REGISTRO DE CORRIDA
@@ -394,8 +432,11 @@ def gerar_relatorio(message, correlation_id):
 # FALLBACK IA
 # =======================
 
-@bot.message_handler(func=lambda message: True)
+@bot.message_handler(
+    func=lambda m: (
+        m.text
+        and not m.text.startswith("/")
+    )
+)
 def fallback_ia(message):
-    if message.text.startswith("/"):
-        return
     responder_com_ia(bot, message)
