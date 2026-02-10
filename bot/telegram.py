@@ -1,14 +1,15 @@
 from telebot import TeleBot, types
 from datetime import datetime
-import os
 
 from config.settings import BOT_TOKEN
 from service.corrida_service import CorridaService
+from service.usuario_service import UsuarioService
 from ia.gemini import responder_com_ia
 from utils.logger_csv import configurar_monitoramento
 
 bot = TeleBot(BOT_TOKEN)
-service = CorridaService()
+corrida_service = CorridaService()
+usuario_service = UsuarioService()
 
 
 def iniciar_bot():
@@ -17,8 +18,20 @@ def iniciar_bot():
     bot.polling(none_stop=True, interval=1.5)
 
 
+# =========================
+# /start
+# =========================
 @bot.message_handler(commands=["start"])
 def start(message):
+    telegram_id = message.from_user.id
+    nome = message.from_user.first_name or "Usuário"
+
+    # 🔐 garante que o usuário existe no banco
+    usuario_service.registrar_usuario(
+        telegram_id=telegram_id,
+        nome=nome,
+    )
+
     texto = (
         "🏃 *Bot de Corridas*\n\n"
         "/registrar – Registrar treino\n"
@@ -30,6 +43,9 @@ def start(message):
     bot.send_message(message.chat.id, texto, parse_mode="Markdown")
 
 
+# =========================
+# /registrar
+# =========================
 @bot.message_handler(commands=["registrar"])
 def registrar(message):
     msg = bot.send_message(message.chat.id, "⏱ Informe o tempo (minutos):")
@@ -56,26 +72,40 @@ def registrar_distancia(message, tempo):
 
 
 def registrar_passos(message, tempo, distancia):
-    passos = int(message.text)
-    msg = bot.send_message(message.chat.id, "🔥 Calorias:")
-    bot.register_next_step_handler(msg, registrar_calorias, tempo, distancia, passos)
+    try:
+        passos = int(message.text)
+        msg = bot.send_message(message.chat.id, "🔥 Calorias:")
+        bot.register_next_step_handler(
+            msg, registrar_calorias, tempo, distancia, passos
+        )
+    except ValueError:
+        bot.send_message(message.chat.id, "❌ Passos inválidos.")
 
 
 def registrar_calorias(message, tempo, distancia, passos):
-    calorias = int(message.text)
+    try:
+        calorias = int(message.text)
 
-    service.registrar_corrida(
-        telegram_id=message.chat.id,
-        nome=message.from_user.first_name,
-        tempo=tempo,
-        distancia=distancia,
-        passos=passos,
-        calorias=calorias,
-    )
+        corrida_service.registrar_corrida(
+            telegram_id=message.from_user.id,
+            tempo_minutos=tempo,
+            distancia_km=distancia,
+            passos=passos,
+            calorias=calorias,
+        )
 
-    bot.send_message(message.chat.id, "✅ Corrida registrada com sucesso!")
+        bot.send_message(
+            message.chat.id,
+            "✅ Corrida registrada com sucesso!",
+        )
+
+    except ValueError:
+        bot.send_message(message.chat.id, "❌ Calorias inválidas.")
 
 
+# =========================
+# IA fallback
+# =========================
 @bot.message_handler(func=lambda message: True)
 def fallback_ia(message):
     if message.text.startswith("/") or message.text.lower() == "oi":
