@@ -5,6 +5,7 @@ from google import genai
 from google.genai.errors import ServerError, ClientError
 import telegramify_markdown
 from config.settings import GEMINI
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 log = logging.getLogger(__name__)
 
@@ -88,7 +89,43 @@ def responder_com_ia(bot, message):
     user_id = message.from_user.id
 
     # filtros básicos (reduz custo e latência)
-    if not texto_usuario or len(texto_usuario) < 6:
+    # if not texto_usuario or len(texto_usuario) < 6:
+    if not texto_usuario:
+        return
+    
+    cumprimentos = {
+        "oi": "👋 Olá! Posso te ajudar com treinos, ranking ou pace.",
+        "olá": "👋 Olá! Quer registrar um treino ou ver o ranking?",
+        "ola": "👋 Olá! Quer registrar um treino ou ver o ranking?",
+        "bom dia": "🌅 Bom dia! Bora correr hoje?",
+        "boa tarde": "☀️ Boa tarde! Como posso ajudar?",
+        "boa noite": "🌙 Boa noite! Quer ver seu desempenho?",
+        "b dia": "🌅 Bom dia! Bora correr hoje?",
+    }
+
+    chama_funcao = ("\n\n Se preferir temos uma lista de comandos disponíveis\n Para acessar basta clicar no botão abaixo 👇")
+
+    if texto_usuario in cumprimentos:
+        # bot.send_message(message.chat.id, cumprimentos[texto_usuario] + chama_funcao)
+        markup = InlineKeyboardMarkup()
+        markup.add(
+            InlineKeyboardButton(
+                "📋 Ver comandos",
+                url="https://t.me/IMW_Runners_bot?start=menu"
+            )
+        )
+
+        bot.send_message(
+            message.chat.id,
+            cumprimentos[texto_usuario] + chama_funcao,
+            reply_markup=markup
+        )
+        return
+
+    if len(texto_usuario) < 4:
+        fake_message = message
+        fake_message.text = "/start"
+        bot.process_new_messages([fake_message])
         return
 
     if texto_usuario.startswith("/"):
@@ -112,14 +149,14 @@ def responder_com_ia(bot, message):
     historico_resumido = "\n".join(historico[-2:])  # bem curto
 
     prompt = f"""
-{instrucoes}
+            {instrucoes}
 
-Histórico recente:
-{historico_resumido}
+            Histórico recente:
+            {historico_resumido}
 
-Usuário disse:
-{texto_usuario}
-"""
+            Usuário disse:
+            {texto_usuario}
+            """
 
     try:
         resposta = gerar_resposta(prompt)

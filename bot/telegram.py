@@ -433,10 +433,7 @@ def gerar_relatorio(message, correlation_id):
 # =======================
 
 @bot.message_handler(
-    func=lambda m: (
-        m.text
-        and not m.text.startswith("/")
-    )
-)
+    func=lambda m: (m.text and not m.text.startswith("/")))
+
 def fallback_ia(message):
     responder_com_ia(bot, message)
