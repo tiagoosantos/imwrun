@@ -121,6 +121,38 @@ def callback_ranking_km(call):
     enviar_ranking_km(chat_id, pagina, correlation_id)
 
 
+def usuario_cancelou(texto: str) -> bool:
+    return texto.strip().lower() == "sair"
+
+def parse_tempo(texto: str) -> int:
+    texto = texto.strip()
+    texto = texto.replace(".", ":")
+    texto = texto.replace(" ", "")
+
+    minutos, segundos = map(int, texto.split(":"))
+
+    if segundos >= 60:
+        raise ValueError("Segundos inválidos")
+
+    return minutos * 60 + segundos
+
+def parse_distancia(texto: str) -> float:
+    texto = texto.strip()
+    texto = texto.replace(".", ",")
+    texto = texto.replace(" ", "")
+
+    km, metros = texto.split(",")
+
+    if int(metros) >= 1000:
+        raise ValueError("Metros inválidos")
+
+    distancia_km = int(km) + (int(metros) / 1000)
+
+    if distancia_km <= 0:
+        raise ValueError("Distância inválida")
+
+    return distancia_km
+
 # =======================
 # REGISTRO DE CORRIDA
 # =======================
@@ -138,13 +170,24 @@ def registrar(message):
         },
     )
 
-    msg = bot.send_message(message.chat.id, "⏱ Informe o tempo (minutos):")
+    msg = bot.send_message(message.chat.id, "⏱ Informe o tempo (MM:SS)\n\nDigite 'sair' para cancelar.")
     bot.register_next_step_handler(msg, registrar_tempo, correlation_id)
 
 def registrar_tempo(message, correlation_id):
+    if not message.text:
+        return
+
+    texto = message.text.strip()
+
+    if usuario_cancelou(texto):
+        bot.send_message(message.chat.id, "❌ Registro cancelado.")
+        fake_message = message
+        fake_message.text = "/start"
+        bot.process_new_messages([fake_message])
+        return
+    
     try:
-        minutos, segundos = map(int, message.text.split(":"))
-        tempo_segundos = minutos * 60 + segundos
+        tempo_segundos = parse_tempo(texto)
 
         log.info(
             "Tempo informado",
@@ -155,24 +198,42 @@ def registrar_tempo(message, correlation_id):
             },
         )
 
-        msg = bot.send_message(message.chat.id, "🏃 Distância no formato KM,metros\nEx: 5,250")
+        msg = bot.send_message(message.chat.id, "🏃 Distância no formato KM,metros\nEx: 5,250\n\nDigite 'sair' para cancelar.")
         bot.register_next_step_handler(msg, registrar_distancia, tempo_segundos, correlation_id)
 
-    except ValueError:
+    except Exception:
         log.warning(
             "Tempo inválido",
             extra={
                 "telegram_id": message.chat.id,
                 "correlation_id": correlation_id,
-                "valor": message.text,
-            },
+                "valor": message.text})
+        
+        bot.send_message(
+            message.chat.id,
+            "❌ Formato inválido. Use MM:SS\n\nDigite 'sair' para cancelar.")
+
+        bot.register_next_step_handler(
+            message,
+            registrar_tempo,
+            correlation_id
         )
-        bot.send_message(message.chat.id, "❌ Tempo inválido. Use o formato MM:SS, ex: 50:30")
 
 def registrar_distancia(message, tempo_segundos, correlation_id):
+    if not message.text:
+        return
+
+    texto = message.text.strip()
+
+    if usuario_cancelou(texto):
+        bot.send_message(message.chat.id, "❌ Registro cancelado.")
+        fake_message = message
+        fake_message.text = "/start"
+        bot.process_new_messages([fake_message])
+        return
+    
     try:
-        km, metros = message.text.split(",")
-        distancia_km = int(km) + (int(metros) / 1000)
+        distancia_km = parse_distancia(texto)
 
         log.info(
             "Distância informada",
@@ -183,12 +244,12 @@ def registrar_distancia(message, tempo_segundos, correlation_id):
             },
         )
 
-        msg = bot.send_message(message.chat.id, "👣 Passos:")
+        msg = bot.send_message(message.chat.id, "👟 Informe os passos (ou 0 se não souber)\n\nDigite 'sair' para cancelar.")
         bot.register_next_step_handler(
             msg, registrar_passos, tempo_segundos, distancia_km, correlation_id
         )
 
-    except ValueError:
+    except Exception:
         log.warning(
             "Distância inválida",
             extra={
@@ -197,11 +258,29 @@ def registrar_distancia(message, tempo_segundos, correlation_id):
                 "valor": message.text,
             },
         )
-        bot.send_message(message.chat.id, "❌ Distância inválida. Use KM,metros (Ex: 5,250)")
+        bot.send_message(message.chat.id, "❌ Distância inválida. Use KM,metros (Ex: 5,250)\n\nOu digite 'sair' para cancelar.")
+        bot.register_next_step_handler(
+            message,
+            registrar_distancia,
+            tempo_segundos,
+            correlation_id
+        )
 
 def registrar_passos(message, tempo_segundos, distancia_km, correlation_id):
+    if not message.text:
+        return
+
+    texto = message.text.strip()
+
+    if usuario_cancelou(texto):
+        bot.send_message(message.chat.id, "❌ Registro cancelado.")
+        fake_message = message
+        fake_message.text = "/start"
+        bot.process_new_messages([fake_message])
+        return
+    
     try:
-        passos = int(message.text)
+        passos = int(texto)
 
         log.info(
             "Passos informados",
@@ -212,12 +291,12 @@ def registrar_passos(message, tempo_segundos, distancia_km, correlation_id):
             },
         )
 
-        msg = bot.send_message(message.chat.id, "🔥 Calorias:")
+        msg = bot.send_message(message.chat.id, "🔥 Informe as calorias (ou 0 se não souber)\n\nDigite 'sair' para cancelar.")
         bot.register_next_step_handler(
             msg, registrar_calorias, tempo_segundos, distancia_km, passos, correlation_id
         )
 
-    except ValueError:
+    except Exception:
         log.warning(
             "Passos inválidos",
             extra={
@@ -226,11 +305,30 @@ def registrar_passos(message, tempo_segundos, distancia_km, correlation_id):
                 "valor": message.text,
             },
         )
-        bot.send_message(message.chat.id, "❌ Passos inválidos.")
+        bot.send_message(message.chat.id, "❌ Informe apenas número inteiro.\n\nDigite 'sair' para cancelar.")
+        bot.register_next_step_handler(
+            message,
+            registrar_passos,
+            tempo_segundos,
+            distancia_km,
+            correlation_id
+        )
 
 def registrar_calorias(message, tempo_segundos, distancia_km, passos, correlation_id):
+    if not message.text:
+        return
+
+    texto = message.text.strip()
+
+    if usuario_cancelou(texto):
+        bot.send_message(message.chat.id, "❌ Registro cancelado.")
+        fake_message = message
+        fake_message.text = "/start"
+        bot.process_new_messages([fake_message])
+        return
+    
     try:
-        calorias = int(message.text)
+        calorias = int(texto)
 
         corrida_service.registrar_corrida(
             telegram_id=message.chat.id,
@@ -267,26 +365,6 @@ def registrar_calorias(message, tempo_segundos, distancia_km, passos, correlatio
 # PACE
 # =======================
 
-# @bot.message_handler(commands=["pace"])
-# def pace(message):
-#     correlation_id = message.message_id
-
-#     log.info(
-#         "Comando /pace",
-#         extra={
-#             "telegram_id": message.chat.id,
-#             "correlation_id": correlation_id,
-#         },
-#     )
-
-#     msg = bot.send_message(
-#         message.chat.id,
-#         "Informe no formato:\n`tempo_em_minutos distancia_km`\nEx: `50 10`",
-#         parse_mode="Markdown",
-#     )
-#     bot.register_next_step_handler(msg, calcular_pace, correlation_id)
-
-
 @bot.message_handler(commands=["pace"])
 def pace(message):
     correlation_id = message.message_id
@@ -301,14 +379,163 @@ def pace(message):
 
     msg = bot.send_message(
         message.chat.id,
-        "Informe:\n"
-        "Tempo (MM:SS)\n"
-        "Distância (KM,metros)\n"
-        "Opcional: Pace manual (MM:SS)\n\n"
-        "Exemplo:\n45:30\n5,000\n0"
+        "⏱ Informe o tempo no formato MM:SS\nEx: 45:30"
     )
 
-    bot.register_next_step_handler(msg, calcular_pace, correlation_id)
+    bot.register_next_step_handler(msg, pace_tempo, correlation_id)
+
+def pace_tempo(message, correlation_id):
+    texto = message.text.strip()
+
+    if usuario_cancelou(texto):
+        bot.send_message(message.chat.id, "❌ Operação cancelada.")
+        fake_message = message
+        fake_message.text = "/start"
+        bot.process_new_messages([fake_message])
+        return
+    
+    try:
+        tempo_segundos = parse_tempo(message.text)
+
+        log.info(
+            "Tempo pace informado",
+            extra={
+                "telegram_id": message.chat.id,
+                "correlation_id": correlation_id,
+                "tempo_segundos": tempo_segundos,
+            },
+        )
+
+        msg = bot.send_message(
+            message.chat.id,
+            "🏃 Informe a distância no formato KM,metros\nEx: 5,250\n\n"
+            "Ou digite 'sair' para cancelar."
+        )
+
+        bot.register_next_step_handler(
+            msg,
+            pace_distancia,
+            tempo_segundos,
+            correlation_id
+        )
+
+    except Exception:
+        bot.send_message(message.chat.id, 
+                            "❌ Formato inválido.\n"
+                            "Use MM:SS\n"
+                            "Ex: 45:30\n\n"
+                            "Ou digite 'sair' para cancelar.")
+        
+        bot.register_next_step_handler(message, pace_tempo, correlation_id)
+
+def pace_distancia(message, tempo_segundos, correlation_id):
+    texto = message.text.strip()
+
+    if usuario_cancelou(texto):
+        bot.send_message(message.chat.id, "❌ Operação cancelada.")
+        fake_message = message
+        fake_message.text = "/start"
+        bot.process_new_messages([fake_message])
+        return
+
+    try:
+        distancia_km = parse_distancia(message.text)
+
+        if distancia_km <= 0:
+            raise ValueError
+
+        log.info(
+            "Distância pace informada",
+            extra={
+                "telegram_id": message.chat.id,
+                "correlation_id": correlation_id,
+                "distancia_km": distancia_km,
+            },
+        )
+
+        msg = bot.send_message(
+            message.chat.id,
+            "⏱ Informe o pace manual (MM:SS)\n"
+            "Ou digite 0 para calcular automaticamente\n\n"
+            "Ou digite 'sair' para cancelar."
+        )
+
+        bot.register_next_step_handler(
+            msg,
+            pace_manual,
+            tempo_segundos,
+            distancia_km,
+            correlation_id
+        )
+
+    except Exception:
+        bot.send_message(message.chat.id,
+                                "❌ Formato inválido.\n"
+                                "Use KM,metros\n"
+                                "Ex: 5,250\n\n"
+                                "Ou digite 'sair' para cancelar.")
+
+        bot.register_next_step_handler(message, pace_distancia, tempo_segundos, correlation_id)
+
+def pace_manual(message, tempo_segundos, distancia_km, correlation_id):
+    texto = message.text.strip()
+
+    if usuario_cancelou(texto):
+        bot.send_message(message.chat.id, "❌ Operação cancelada.")
+        fake_message = message
+        fake_message.text = "/start"
+        bot.process_new_messages([fake_message])
+        return
+    
+    try:
+        texto = message.text.strip()
+
+        if texto == "0":
+            pace_segundos = int(tempo_segundos / distancia_km)
+            origem = "calculado"
+        else:
+            pace_segundos = parse_tempo(texto)
+            origem = "manual"
+
+        minutos_final = pace_segundos // 60
+        segundos_final = pace_segundos % 60
+
+        pace_formatado = f'{minutos_final:02d}"{segundos_final:02d}\''
+
+        log.info(
+            "Pace processado",
+            extra={
+                "telegram_id": message.chat.id,
+                "correlation_id": correlation_id,
+                "tempo_segundos": tempo_segundos,
+                "distancia_km": distancia_km,
+                "pace_segundos": pace_segundos,
+                "origem": origem,
+            },
+        )
+
+        bot.send_message(
+            message.chat.id,
+            f"⏱ Seu pace é: *{pace_formatado} por km*",
+            parse_mode="Markdown",
+        )
+
+    except Exception:
+        log.warning(
+            "Erro cálculo pace",
+            extra={
+                "telegram_id": message.chat.id,
+                "correlation_id": correlation_id,
+                "valor": message.text,
+            },
+        )
+
+        bot.send_message(message.chat.id,
+                                "❌ Formato inválido.\n"
+                                "Use MM:SS ou 0\n\n"
+                                "Ou digite 'sair' para cancelar.")
+
+        bot.register_next_step_handler(message, pace_manual, tempo_segundos, distancia_km, correlation_id)
 
 
 def calcular_pace(message, correlation_id):
