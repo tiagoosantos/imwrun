@@ -2,6 +2,7 @@ from repository.corrida_repository import CorridaRepository
 
 
 class CorridaService:
+
     def __init__(self):
         self.repo = CorridaRepository()
 
@@ -9,11 +10,20 @@ class CorridaService:
     # REGRA DE NEGÓCIO
     # =========================
 
-    def calcular_pace(self, tempo_segundos: int, distancia_km: float) -> int:
-        if distancia_km <= 0:
+    def calcular_pace(
+        self,
+        tempo_segundos: int,
+        distancia_metros: int
+    ) -> int:
+
+        if distancia_metros <= 0:
             raise ValueError("Distância deve ser maior que zero")
 
-        return int(tempo_segundos / distancia_km)
+        # pace = tempo por km
+        # km = metros / 1000
+        # pace = tempo / (metros/1000)
+        # pace = tempo * 1000 / metros
+        return int((tempo_segundos * 1000) / distancia_metros)
 
     # =========================
     # REGISTRO
@@ -23,10 +33,10 @@ class CorridaService:
         self,
         telegram_id: int,
         tempo_segundos: int,
-        distancia_km: float,
+        distancia_metros: int,
         passos: int | None,
         calorias: int | None,
-        pace_segundos: int | None = None,  # 👈 opcional
+        pace_segundos: int | None = None,
     ) -> None:
         """
         Regra:
@@ -34,17 +44,27 @@ class CorridaService:
         - Senão → calcular automaticamente
         """
 
+        if tempo_segundos <= 0:
+            raise ValueError("Tempo inválido")
+
+        if distancia_metros <= 0:
+            raise ValueError("Distância inválida")
+
         if pace_segundos is None:
             pace_segundos = self.calcular_pace(
                 tempo_segundos,
-                distancia_km,
+                distancia_metros,
             )
+            pace_origem = "calculado"
+        else:
+            pace_origem = "manual"
 
         self.repo.inserir_corrida(
             telegram_id=telegram_id,
             tempo_segundos=tempo_segundos,
-            distancia_km=distancia_km,
+            distancia_metros=distancia_metros,
             passos=passos,
             calorias=calorias,
             pace_segundos=pace_segundos,
+            pace_origem=pace_origem,
         )

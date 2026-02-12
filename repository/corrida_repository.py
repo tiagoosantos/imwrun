@@ -7,14 +7,19 @@ class CorridaRepository:
     Nenhuma regra de negócio deve ficar aqui.
     """
 
+    # --------------------------------------------------
+    # INSERT
+    # --------------------------------------------------
+
     def inserir_corrida(
         self,
         telegram_id: int,
-        tempo_minutos: int,
-        distancia_km: float,
+        tempo_segundos: int,
+        distancia_metros: int,
         passos: int | None,
         calorias: int | None,
-        pace: float,
+        pace_segundos: int,
+        pace_origem: str,
     ) -> None:
         """
         Insere uma nova corrida para um usuário já existente.
@@ -28,23 +33,26 @@ class CorridaRepository:
                 """
                 INSERT INTO corridas (
                     telegram_id,
-                    tempo_minutos,
-                    distancia_km,
+                    tempo_segundos,
+                    distancia_metros,
                     passos,
                     calorias,
-                    pace
+                    pace_segundos,
+                    pace_origem
                 )
-                VALUES (%s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     telegram_id,
-                    tempo_minutos,
-                    distancia_km,
+                    tempo_segundos,
+                    distancia_metros,
                     passos,
                     calorias,
-                    pace,
+                    pace_segundos,
+                    pace_origem,
                 ),
             )
+
             conn.commit()
 
         finally:
@@ -52,11 +60,10 @@ class CorridaRepository:
             conn.close()
 
     # --------------------------------------------------
+    # LISTAR CORRIDAS DO USUÁRIO
+    # --------------------------------------------------
 
     def listar_corridas_usuario(self, telegram_id: int):
-        """
-        Retorna todas as corridas de um usuário.
-        """
 
         conn = get_connection()
         cur = conn.cursor()
@@ -66,11 +73,12 @@ class CorridaRepository:
                 """
                 SELECT
                     id,
-                    tempo_minutos,
-                    distancia_km,
+                    tempo_segundos,
+                    distancia_metros,
                     passos,
                     calorias,
-                    pace,
+                    pace_segundos,
+                    pace_origem,
                     data_corrida
                 FROM corridas
                 WHERE telegram_id = %s
@@ -86,11 +94,10 @@ class CorridaRepository:
             conn.close()
 
     # --------------------------------------------------
+    # RANKING KM
+    # --------------------------------------------------
 
     def ranking_km(self, limit: int = 10):
-        """
-        Ranking por quilometragem total.
-        """
 
         conn = get_connection()
         cur = conn.cursor()
@@ -101,7 +108,7 @@ class CorridaRepository:
                 SELECT
                     u.telegram_id,
                     u.nome,
-                    ROUND(SUM(c.distancia_km), 2) AS total_km
+                    ROUND(SUM(c.distancia_metros) / 1000.0, 2) AS total_km
                 FROM usuarios u
                 JOIN corridas c ON c.telegram_id = u.telegram_id
                 GROUP BY u.telegram_id, u.nome
@@ -118,11 +125,10 @@ class CorridaRepository:
             conn.close()
 
     # --------------------------------------------------
+    # RANKING TEMPO
+    # --------------------------------------------------
 
     def ranking_tempo(self, limit: int = 10):
-        """
-        Ranking por tempo total de exercício.
-        """
 
         conn = get_connection()
         cur = conn.cursor()
@@ -133,11 +139,11 @@ class CorridaRepository:
                 SELECT
                     u.telegram_id,
                     u.nome,
-                    SUM(c.tempo_minutos) AS tempo_total
+                    SUM(c.tempo_segundos) AS tempo_total_segundos
                 FROM usuarios u
                 JOIN corridas c ON c.telegram_id = u.telegram_id
                 GROUP BY u.telegram_id, u.nome
-                ORDER BY tempo_total DESC
+                ORDER BY tempo_total_segundos DESC
                 LIMIT %s
                 """,
                 (limit,),

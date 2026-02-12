@@ -136,22 +136,80 @@ def parse_tempo(texto: str) -> int:
 
     return minutos * 60 + segundos
 
-def parse_distancia(texto: str) -> float:
-    texto = texto.strip()
-    texto = texto.replace(".", ",")
+def parse_distancia(texto: str) -> int:
+    """
+    Aceita:
+    5
+    5.2
+    5,2
+    5.25
+    5,250
+    5 250
+    5250
+
+    Retorna:
+    Distância em metros (int)
+    """
+
+    texto = texto.strip().lower()
     texto = texto.replace(" ", "")
+    texto = texto.replace(",", ".")  # padroniza decimal
 
-    km, metros = texto.split(",")
+    if not texto:
+        raise ValueError("Distância vazia")
 
-    if int(metros) >= 1000:
-        raise ValueError("Metros inválidos")
+    # Caso seja número inteiro grande (ex: 5250)
+    if texto.isdigit():
+        valor = int(texto)
 
-    distancia_km = int(km) + (int(metros) / 1000)
+        # Se for pequeno, considerar km
+        if valor < 100:
+            return valor * 1000
 
-    if distancia_km <= 0:
+        return valor
+
+    # Caso seja decimal (ex: 5.2 / 5.25)
+    try:
+        km_float = float(texto)
+
+        if km_float <= 0:
+            raise ValueError("Distância inválida")
+
+        return int(km_float * 1000)
+
+    except ValueError:
+        raise ValueError(
+            "Formato inválido. Exemplos válidos:\n"
+            "5\n5.2\n5,250\n5250"
+        )
+
+def formatar_tempo(segundos: int) -> str:
+    """
+    Recebe segundos (int)
+    Retorna MM:SS
+    """
+
+    if segundos < 0:
+        raise ValueError("Tempo inválido")
+
+    minutos = segundos // 60
+    segundos_restantes = segundos % 60
+
+    return f"{minutos:02d}:{segundos_restantes:02d}"
+
+
+def formatar_distancia(distancia_metros: int) -> str:
+    """
+    Recebe metros (int)
+    Retorna string formatada em km com 2 casas e vírgula.
+    """
+
+    if distancia_metros < 0:
         raise ValueError("Distância inválida")
 
-    return distancia_km
+    km = distancia_metros / 1000
+
+    return f"{km:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") + " km"
 
 # =======================
 # REGISTRO DE CORRIDA

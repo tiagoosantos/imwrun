@@ -83,3 +83,84 @@ SELECT
 FROM usuarios u
 JOIN corridas c ON c.telegram_id = u.telegram_id
 GROUP BY u.telegram_id, u.nome, mes;
+
+
+ALTER TABLE corridas
+ADD COLUMN tempo_segundos INTEGER,
+ADD COLUMN distancia_metros INTEGER,
+ADD COLUMN pace_segundos INTEGER,
+ADD COLUMN pace_origem VARCHAR(20);
+
+SELECT * from corridas;
+
+ALTER TABLE corridas
+ALTER COLUMN tempo_segundos SET NOT NULL,
+ALTER COLUMN distancia_metros SET NOT NULL,
+ALTER COLUMN pace_segundos SET NOT NULL;
+
+ALTER TABLE corridas
+ADD CONSTRAINT chk_tempo_segundos CHECK (tempo_segundos > 0),
+ADD CONSTRAINT chk_distancia_metros CHECK (distancia_metros > 0),
+ADD CONSTRAINT chk_pace_segundos CHECK (pace_segundos > 0);
+
+ALTER TABLE corridas
+DROP COLUMN tempo_minutos,
+DROP COLUMN distancia_km,
+DROP COLUMN pace;
+
+DROP INDEX IF EXISTS idx_corridas_distancia;
+DROP INDEX IF EXISTS idx_corridas_tempo;
+
+
+CREATE INDEX idx_corridas_distancia_metros
+    ON corridas (distancia_metros DESC);
+
+CREATE INDEX idx_corridas_tempo_segundos
+    ON corridas (tempo_segundos DESC);
+
+CREATE INDEX idx_corridas_pace_segundos
+    ON corridas (pace_segundos ASC);
+
+
+
+DROP VIEW IF EXISTS ranking_km;
+DROP VIEW IF EXISTS ranking_tempo;
+DROP VIEW IF EXISTS corridas_mensais;
+
+SELECT *
+FROM pg_depend d
+JOIN pg_class c ON d.refobjid = c.oid
+WHERE c.relname = 'corridas';
+
+CREATE VIEW ranking_km AS
+SELECT
+    u.telegram_id,
+    u.nome,
+    ROUND(SUM(c.distancia_metros) / 1000.0, 2) AS total_km
+FROM usuarios u
+JOIN corridas c ON c.telegram_id = u.telegram_id
+GROUP BY u.telegram_id, u.nome
+ORDER BY total_km DESC;
+
+CREATE VIEW ranking_tempo AS
+SELECT
+    u.telegram_id,
+    u.nome,
+    SUM(c.tempo_segundos) AS tempo_total_segundos
+FROM usuarios u
+JOIN corridas c ON c.telegram_id = u.telegram_id
+GROUP BY u.telegram_id, u.nome
+ORDER BY tempo_total_segundos DESC;
+
+CREATE VIEW corridas_mensais AS
+SELECT
+    u.telegram_id,
+    u.nome,
+    DATE_TRUNC('month', c.data_corrida) AS mes,
+    COUNT(*) AS total_treinos,
+    ROUND(SUM(c.distancia_metros) / 1000.0, 2) AS km_total,
+    SUM(c.tempo_segundos) AS tempo_total_segundos,
+    ROUND(AVG(c.pace_segundos), 0) AS pace_medio_segundos
+FROM usuarios u
+JOIN corridas c ON c.telegram_id = u.telegram_id
+GROUP BY u.telegram_id, u.nome, mes;
