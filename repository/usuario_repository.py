@@ -1,4 +1,4 @@
-from database.connection import get_connection
+from datetime import datetime
 
 
 class UsuarioRepository:
@@ -9,27 +9,52 @@ class UsuarioRepository:
     def buscar_por_telegram_id(self, telegram_id: int):
         with self.conn.cursor() as cur:
             cur.execute("""
-                SELECT id, nome, nome_confirmado
+                SELECT id,
+                       nome,
+                       nome_confirmado
                 FROM usuarios
                 WHERE telegram_id = %s
             """, (telegram_id,))
             return cur.fetchone()
 
-    def inserir_usuario_inicial(self, telegram_id, username, first_name):
+    def inserir_ou_atualizar_usuario(self, user):
+        """
+        Insere usuário se não existir.
+        Se já existir, atualiza dados dinâmicos (username, language, premium, etc).
+        Também atualiza ultimo_acesso.
+        """
+
         with self.conn.cursor() as cur:
             cur.execute("""
                 INSERT INTO usuarios (
                     telegram_id,
                     username,
-                    telegram_first_name
+                    first_name,
+                    last_name,
+                    language_code,
+                    is_premium,
+                    is_bot,
+                    ultimo_acesso
                 )
-                VALUES (%s, %s, %s)
-                ON CONFLICT (telegram_id) DO NOTHING
+                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                ON CONFLICT (telegram_id)
+                DO UPDATE SET
+                    username = EXCLUDED.username,
+                    first_name = EXCLUDED.first_name,
+                    last_name = EXCLUDED.last_name,
+                    language_code = EXCLUDED.language_code,
+                    is_premium = EXCLUDED.is_premium,
+                    ultimo_acesso = NOW()
             """, (
-                telegram_id,
-                username,
-                first_name
+                user.id,
+                user.username,
+                user.first_name,
+                user.last_name,
+                user.language_code,
+                getattr(user, "is_premium", False),
+                user.is_bot
             ))
+
             self.conn.commit()
 
     def atualizar_nome(self, telegram_id: int, nome: str):
@@ -40,5 +65,5 @@ class UsuarioRepository:
                     nome_confirmado = TRUE
                 WHERE telegram_id = %s
             """, (nome, telegram_id))
-            self.conn.commit()
 
+            self.conn.commit()

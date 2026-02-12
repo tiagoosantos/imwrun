@@ -1,16 +1,33 @@
 -- =========================
 -- TABELA DE USUÁRIOS
 -- =========================
+-- CREATE TABLE usuarios (
+--     id SERIAL PRIMARY KEY,
+--     telegram_id BIGINT UNIQUE NOT NULL,
+--     username VARCHAR(100),
+--     telegram_first_name VARCHAR(100),
+--     nome VARCHAR(150),
+--     nome_confirmado BOOLEAN DEFAULT FALSE,
+--     ativo BOOLEAN DEFAULT TRUE,
+--     data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- );
+
 CREATE TABLE usuarios (
     id SERIAL PRIMARY KEY,
     telegram_id BIGINT UNIQUE NOT NULL,
     username VARCHAR(100),
-    telegram_first_name VARCHAR(100),
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    language_code VARCHAR(10),
+    is_premium BOOLEAN,
+    is_bot BOOLEAN,
     nome VARCHAR(150),
     nome_confirmado BOOLEAN DEFAULT FALSE,
-    ativo BOOLEAN DEFAULT TRUE,
+    ultimo_acesso TIMESTAMP,
     data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- drop table usuarios CASCADE;
 
 -- =========================
 -- TABELA DE CORRIDAS

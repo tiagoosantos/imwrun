@@ -21,13 +21,20 @@ log_config = HandlerConfig(APP, email="gmail", long_running=True)
 log, email_handler = log_config.get_logger(APP)
 
 # =======================
+# CONTROLE DE CADASTRO
+# =======================
+
+# usuarios_aguardando_nome = set()
+
+# =======================
 # BOT / SERVICES
 # =======================
 
 bot = TeleBot(BOT_TOKEN)
 
+conn = get_connection()
+usuario_service = UsuarioService(conn)
 corrida_service = CorridaService()
-usuario_service = UsuarioService()
 relatorio_service = RelatorioService()
 
 # =======================
@@ -45,22 +52,32 @@ def iniciar_bot():
 @bot.message_handler(commands=["start"])
 def start(message):
     correlation_id = message.message_id
-    telegram_id = message.from_user.id
-    nome = message.from_user.first_name or "Usuário"
+    telegram_user = message.from_user
+    telegram_id = telegram_user.id
 
-    usuario_service.registrar_usuario(
-        telegram_id=telegram_id,
-        nome=nome,
-    )
+    status = usuario_service.registrar_ou_atualizar(telegram_user)
 
     log.info(
         "Comando /start",
         extra={
             "telegram_id": telegram_id,
             "correlation_id": correlation_id,
-            "command": "/start",
+            "status_usuario": status,
         },
     )
+
+    if status == "AGUARDANDO_NOME":
+        bot.send_message(
+            message.chat.id,
+            "👋 Olá! Antes de começarmos, me diga seu *nome completo*:",
+            parse_mode="Markdown"
+        )
+        return
+
+    enviar_menu_principal(message)
+
+
+def enviar_menu_principal(message):
 
     texto = (
         "🏃 *Bem-vindo ao IMW Runner!*\n\n"
@@ -82,6 +99,7 @@ def start(message):
         reply_markup=markup,
         parse_mode="Markdown",
     )
+
 
 @bot.callback_query_handler(func=lambda call: True)
 def callbacks(call):
@@ -391,7 +409,7 @@ def registrar_calorias(message, tempo_segundos, distancia_km, passos, correlatio
 
         corrida_service.registrar_corrida(
             telegram_id=message.chat.id,
-            tempo_minutos=tempo_segundos,
+            tempo_segundos=tempo_segundos,
             distancia_km=distancia_km,
             passos=passos,
             calorias=calorias,
@@ -550,7 +568,8 @@ def pace_manual(message, tempo_segundos, distancia_km, correlation_id):
         texto = message.text.strip()
 
         if texto == "0":
-            pace_segundos = int(tempo_segundos / distancia_km)
+            distancia_km_real = distancia_km / 1000
+            pace_segundos = int(tempo_segundos / distancia_km_real)
             origem = "calculado"
         else:
             pace_segundos = parse_tempo(texto)
@@ -697,33 +716,6 @@ def calcular_pace(message, correlation_id):
 # =======================
 # RANKINGS
 # =======================
-
-# @bot.message_handler(commands=["ranking_km"])
-# def ranking_km(message):
-#     correlation_id = message.message_id
-
-#     log.info(
-#         "Ranking KM solicitado",
-#         extra={
-#             "telegram_id": message.chat.id,
-#             "correlation_id": correlation_id,
-#         },
-#     )
-
-#     ranking = corrida_service.repo.ranking_km(limit=10)
-#     if not ranking:
-#         bot.send_message(message.chat.id, "📭 Nenhuma corrida registrada.")
-#         return
-
-#     texto = "🏆 *Ranking por KM*\n\n"
-#     for pos, (_, nome, total_km) in enumerate(ranking, start=1):
-#         texto += f"{pos}º - {nome}: {float(total_km):.2f} km\n"
-
-#     bot.send_message(message.chat.id, texto, parse_mode="Markdown")
-
-
-# @bot.message_handler(regexp=r"^/ranking_km_pg\s+\d+$")
-# def ranking_km_pg(message):
 @bot.message_handler(commands=["ranking_km"])
 def ranking_km(message):
     correlation_id = message.message_id
@@ -860,6 +852,40 @@ def gerar_relatorio(message, correlation_id):
             },
         )
         bot.send_message(message.chat.id, "❌ Erro ao gerar relatório.")
+
+
+@bot.message_handler(func=lambda m: True)
+def verificar_cadastro(message):
+    telegram_user = message.from_user
+    telegram_id = telegram_user.id
+
+    status = usuario_service.registrar_ou_atualizar(telegram_user)
+
+    if status == "AGUARDANDO_NOME":
+
+        nome = message.text.strip()
+
+        if len(nome.split()) < 2:
+            bot.send_message(
+                message.chat.id,
+                "❌ Informe *nome e sobrenome*.",
+                parse_mode="Markdown"
+            )
+            return
+
+        usuario_service.salvar_nome(telegram_id, nome)
+
+        bot.send_message(
+            message.chat.id,
+            f"✅ Cadastro concluído, *{nome}*!",
+            parse_mode="Markdown"
+        )
+
+        enviar_menu_principal(message)
+        return
+
+    # Se já estiver OK, deixa fluxo normal continuar
+    responder_com_ia(bot, message)
 
 # =======================
 # FALLBACK IA

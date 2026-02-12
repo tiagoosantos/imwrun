@@ -4,20 +4,26 @@ from repository.usuario_repository import UsuarioRepository
 class UsuarioService:
 
     def __init__(self, connection):
+        from repository.usuario_repository import UsuarioRepository
         self.repo = UsuarioRepository(connection)
 
-    def verificar_ou_criar_usuario(self, telegram_user):
+    def registrar_ou_atualizar(self, telegram_user):
+        """
+        Sempre que usuário interage:
+        - insere se não existir
+        - atualiza dados dinâmicos
+        """
+
+        self.repo.inserir_ou_atualizar_usuario(telegram_user)
+
         usuario = self.repo.buscar_por_telegram_id(telegram_user.id)
 
         if not usuario:
-            self.repo.inserir_usuario_inicial(
-                telegram_user.id,
-                telegram_user.username,
-                telegram_user.first_name
-            )
             return "NOVO"
 
-        if not usuario[2]:  # nome_confirmado
+        _, nome, nome_confirmado = usuario
+
+        if not nome_confirmado:
             return "AGUARDANDO_NOME"
 
         return "OK"
