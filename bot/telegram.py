@@ -310,20 +310,20 @@ def registrar_distancia(message, tempo_segundos, correlation_id):
         return
     
     try:
-        distancia_km = parse_distancia(texto)
+        distancia_metros = parse_distancia(texto)
 
         log.info(
             "Distância informada",
             extra={
                 "telegram_id": message.chat.id,
                 "correlation_id": correlation_id,
-                "distancia_km": distancia_km,
+                "distancia_metros": distancia_metros,
             },
         )
 
         msg = bot.send_message(message.chat.id, "👟 Informe os passos (ou 0 se não souber)\n\nDigite 'sair' para cancelar.")
         bot.register_next_step_handler(
-            msg, registrar_passos, tempo_segundos, distancia_km, correlation_id
+            msg, registrar_passos, tempo_segundos, distancia_metros, correlation_id
         )
 
     except Exception:
@@ -343,7 +343,7 @@ def registrar_distancia(message, tempo_segundos, correlation_id):
             correlation_id
         )
 
-def registrar_passos(message, tempo_segundos, distancia_km, correlation_id):
+def registrar_passos(message, tempo_segundos, distanca_metros, correlation_id):
     if not message.text:
         return
 
@@ -370,7 +370,7 @@ def registrar_passos(message, tempo_segundos, distancia_km, correlation_id):
 
         msg = bot.send_message(message.chat.id, "🔥 Informe as calorias (ou 0 se não souber)\n\nDigite 'sair' para cancelar.")
         bot.register_next_step_handler(
-            msg, registrar_calorias, tempo_segundos, distancia_km, passos, correlation_id
+            msg, registrar_calorias, tempo_segundos, distanca_metros, passos, correlation_id
         )
 
     except Exception:
@@ -387,11 +387,11 @@ def registrar_passos(message, tempo_segundos, distancia_km, correlation_id):
             message,
             registrar_passos,
             tempo_segundos,
-            distancia_km,
+            distanca_metros,
             correlation_id
         )
 
-def registrar_calorias(message, tempo_segundos, distancia_km, passos, correlation_id):
+def registrar_calorias(message, tempo_segundos, distanca_metros, passos, correlation_id):
     if not message.text:
         return
 
@@ -410,7 +410,7 @@ def registrar_calorias(message, tempo_segundos, distancia_km, passos, correlatio
         corrida_service.registrar_corrida(
             telegram_id=message.chat.id,
             tempo_segundos=tempo_segundos,
-            distancia_km=distancia_km,
+            distanca_metros=distanca_metros,
             passos=passos,
             calorias=calorias,
         )
@@ -421,7 +421,7 @@ def registrar_calorias(message, tempo_segundos, distancia_km, passos, correlatio
                 "telegram_id": message.chat.id,
                 "correlation_id": correlation_id,
                 "tempo": tempo_segundos/60,
-                "distancia_km": distancia_km,
+                "distanca_metros": distanca_metros,
                 "passos": passos,
                 "calorias": calorias},
         )
@@ -516,9 +516,9 @@ def pace_distancia(message, tempo_segundos, correlation_id):
         return
 
     try:
-        distancia_km = parse_distancia(message.text)
+        distanca_metros = parse_distancia(message.text)
 
-        if distancia_km <= 0:
+        if distanca_metros <= 0:
             raise ValueError
 
         log.info(
@@ -526,7 +526,7 @@ def pace_distancia(message, tempo_segundos, correlation_id):
             extra={
                 "telegram_id": message.chat.id,
                 "correlation_id": correlation_id,
-                "distancia_km": distancia_km,
+                "distanca_metros": distanca_metros,
             },
         )
 
@@ -541,7 +541,7 @@ def pace_distancia(message, tempo_segundos, correlation_id):
             msg,
             pace_manual,
             tempo_segundos,
-            distancia_km,
+            distanca_metros,
             correlation_id
         )
 
@@ -554,7 +554,7 @@ def pace_distancia(message, tempo_segundos, correlation_id):
 
         bot.register_next_step_handler(message, pace_distancia, tempo_segundos, correlation_id)
 
-def pace_manual(message, tempo_segundos, distancia_km, correlation_id):
+def pace_manual(message, tempo_segundos, distanca_metros, correlation_id):
     texto = message.text.strip()
 
     if usuario_cancelou(texto):
@@ -568,8 +568,8 @@ def pace_manual(message, tempo_segundos, distancia_km, correlation_id):
         texto = message.text.strip()
 
         if texto == "0":
-            distancia_km_real = distancia_km / 1000
-            pace_segundos = int(tempo_segundos / distancia_km_real)
+            distanca_metros_real = distanca_metros / 1000
+            pace_segundos = int(tempo_segundos / distanca_metros_real)
             origem = "calculado"
         else:
             pace_segundos = parse_tempo(texto)
@@ -586,7 +586,7 @@ def pace_manual(message, tempo_segundos, distancia_km, correlation_id):
                 "telegram_id": message.chat.id,
                 "correlation_id": correlation_id,
                 "tempo_segundos": tempo_segundos,
-                "distancia_km": distancia_km,
+                "distanca_metros": distanca_metros,
                 "pace_segundos": pace_segundos,
                 "origem": origem,
             },
@@ -613,7 +613,7 @@ def pace_manual(message, tempo_segundos, distancia_km, correlation_id):
                                 "Use MM:SS ou 0\n\n"
                                 "Ou digite 'sair' para cancelar.")
 
-        bot.register_next_step_handler(message, pace_manual, tempo_segundos, distancia_km, correlation_id)
+        bot.register_next_step_handler(message, pace_manual, tempo_segundos, distanca_metros, correlation_id)
 
 
 def calcular_pace(message, correlation_id):
@@ -644,9 +644,9 @@ def calcular_pace(message, correlation_id):
         if int(metros) >= 1000:
             raise ValueError("Metros inválidos")
 
-        distancia_km = int(km) + (int(metros) / 1000)
+        distanca_metros = int(km) + (int(metros) / 1000)
 
-        if distancia_km <= 0:
+        if distanca_metros <= 0:
             raise ValueError("Distância inválida")
 
         # =========================
@@ -666,7 +666,7 @@ def calcular_pace(message, correlation_id):
             origem = "manual"
         else:
             # calcular automaticamente
-            pace_segundos = int(tempo_segundos / distancia_km)
+            pace_segundos = int(tempo_segundos / distanca_metros)
             origem = "calculado"
 
         minutos_final = pace_segundos // 60
@@ -680,7 +680,7 @@ def calcular_pace(message, correlation_id):
                 "telegram_id": message.chat.id,
                 "correlation_id": correlation_id,
                 "tempo_segundos": tempo_segundos,
-                "distancia_km": distancia_km,
+                "distanca_metros": distanca_metros,
                 "pace_segundos": pace_segundos,
                 "origem": origem,
             },
