@@ -4,6 +4,7 @@ from config.settings import BOT_TOKEN
 from service.corrida_service import CorridaService
 from service.usuario_service import UsuarioService
 from service.relatorio_service import RelatorioService
+from database.connection import get_connection
 from ia.gemini import responder_com_ia
 
 # =======================
