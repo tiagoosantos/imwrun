@@ -495,6 +495,14 @@ def callback_tipo(call):
         reply_markup=teclado_local()
     )
 
+def teclado_confirmacao():
+    markup = InlineKeyboardMarkup(row_width=2)
+    markup.add(
+        InlineKeyboardButton("✅ Confirmar", callback_data="confirmar_registro"),
+        InlineKeyboardButton("❌ Cancelar", callback_data="cancelar_registro"),
+    )
+    return markup
+
 @bot.callback_query_handler(func=lambda call: call.data.startswith("local_"))
 def callback_local(call):
     bot.answer_callback_query(call.id)
@@ -507,6 +515,43 @@ def callback_local(call):
         return
 
     local = call.data.replace("local_", "")
+    dados["local_treino"] = local
+
+    # =============================
+    # MONTA RESUMO
+    # =============================
+
+    tempo_formatado = formatar_tempo(dados["tempo_segundos"])
+    distancia_formatada = formatar_distancia(dados["distancia_metros"])
+
+    resumo = (
+        "📋 *Resumo do treino*\n\n"
+        f"⏱ Tempo: {tempo_formatado}\n"
+        f"📏 Distância: {distancia_formatada}\n"
+        f"👟 Passos: {dados['passos']}\n"
+        f"🔥 Calorias: {dados['calorias']}\n"
+        f"🏷 Tipo: {dados['tipo_treino']}\n"
+        f"📍 Local: {dados['local_treino']}\n\n"
+        "Confirmar registro?"
+    )
+
+    bot.send_message(
+        chat_id,
+        resumo,
+        reply_markup=teclado_confirmacao(),
+        parse_mode="Markdown"
+    )
+
+@bot.callback_query_handler(func=lambda call: call.data == "confirmar_registro")
+def callback_confirmar(call):
+    bot.answer_callback_query(call.id)
+
+    chat_id = call.message.chat.id
+    dados = registro_temp.get(chat_id)
+
+    if not dados:
+        bot.send_message(chat_id, "❌ Sessão expirada.")
+        return
 
     try:
         corrida_service.registrar_corrida(
@@ -516,16 +561,14 @@ def callback_local(call):
             passos=dados["passos"],
             calorias=dados["calorias"],
             tipo_treino=dados["tipo_treino"],
-            local_treino=local,
+            local_treino=dados["local_treino"],
         )
 
         log.info(
-            "Corrida registrada com tipo/local",
+            "Corrida confirmada pelo usuário",
             extra={
                 "telegram_id": chat_id,
                 "correlation_id": dados["correlation_id"],
-                "tipo": dados["tipo_treino"],
-                "local": local,
             },
         )
 
@@ -539,11 +582,25 @@ def callback_local(call):
                 "correlation_id": dados["correlation_id"],
             },
         )
-
         bot.send_message(chat_id, "❌ Erro ao registrar corrida.")
 
     finally:
         registro_temp.pop(chat_id, None)
+
+@bot.callback_query_handler(func=lambda call: call.data == "cancelar_registro")
+def callback_cancelar(call):
+    bot.answer_callback_query(call.id)
+
+    chat_id = call.message.chat.id
+
+    registro_temp.pop(chat_id, None)
+
+    bot.send_message(chat_id, "❌ Registro cancelado.")
+
+    fake_message = call.message
+    fake_message.text = "/start"
+    bot.process_new_messages([fake_message])
+
 
 # =======================
 # PACE
