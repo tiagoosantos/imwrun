@@ -20,6 +20,8 @@ class CorridaRepository:
         calorias: int | None,
         pace_segundos: int,
         pace_origem: str,
+        tipo_treino: str,
+        local_treino: str
     ) -> None:
         """
         Insere uma nova corrida para um usuário já existente.
@@ -38,9 +40,11 @@ class CorridaRepository:
                     passos,
                     calorias,
                     pace_segundos,
-                    pace_origem
+                    pace_origem, 
+                    tipo_treino,
+                    local_treino
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     telegram_id,
@@ -50,6 +54,8 @@ class CorridaRepository:
                     calorias,
                     pace_segundos,
                     pace_origem,
+                    tipo_treino,
+                    local_treino
                 ),
             )
 
@@ -79,7 +85,9 @@ class CorridaRepository:
                     calorias,
                     pace_segundos,
                     pace_origem,
-                    data_corrida
+                    data_corrida,
+                    tipo_treino,
+                    local_treino
                 FROM corridas
                 WHERE telegram_id = %s
                 ORDER BY data_corrida DESC

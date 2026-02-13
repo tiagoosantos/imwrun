@@ -19,10 +19,6 @@ class CorridaService:
         if distancia_metros <= 0:
             raise ValueError("Distância deve ser maior que zero")
 
-        # pace = tempo por km
-        # km = metros / 1000
-        # pace = tempo / (metros/1000)
-        # pace = tempo * 1000 / metros
         return int((tempo_segundos * 1000) / distancia_metros)
 
     # =========================
@@ -36,6 +32,8 @@ class CorridaService:
         distancia_metros: int,
         passos: int | None,
         calorias: int | None,
+        tipo_treino: str,
+        local_treino: str,
         pace_segundos: int | None = None,
     ) -> None:
         """
@@ -50,6 +48,10 @@ class CorridaService:
         if distancia_metros <= 0:
             raise ValueError("Distância inválida")
 
+        # -------------------------
+        # PACE
+        # -------------------------
+
         if pace_segundos is None:
             pace_segundos = self.calcular_pace(
                 tempo_segundos,
@@ -59,6 +61,17 @@ class CorridaService:
         else:
             pace_origem = "manual"
 
+        # -------------------------
+        # NORMALIZAÇÃO NOVA
+        # -------------------------
+
+        tipo_treino = tipo_treino.lower().strip()
+        local_treino = local_treino.lower().strip()
+
+        # -------------------------
+        # PERSISTÊNCIA
+        # -------------------------
+
         self.repo.inserir_corrida(
             telegram_id=telegram_id,
             tempo_segundos=tempo_segundos,
@@ -67,4 +80,6 @@ class CorridaService:
             calorias=calorias,
             pace_segundos=pace_segundos,
             pace_origem=pace_origem,
+            tipo_treino=tipo_treino,
+            local_treino=local_treino,
         )

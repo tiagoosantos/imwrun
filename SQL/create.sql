@@ -47,11 +47,19 @@ CREATE TABLE IF NOT EXISTS corridas (
     pace_segundos INTEGER NOT NULL,
     pace_origem VARCHAR(20)
 
+    tipo_treino VARCHAR(20) NOT NULL DEFAULT 'corrida',
+    local_treino VARCHAR(30) NOT NULL DEFAULT 'rua'
+
     CONSTRAINT fk_corridas_usuario
         FOREIGN KEY (telegram_id)
         REFERENCES usuarios (telegram_id)
         ON DELETE CASCADE
 );
+
+-- ALTER TABLE corridas
+-- ADD COLUMN tipo_treino VARCHAR(20) NOT NULL DEFAULT 'corrida',
+-- ADD COLUMN local_treino VARCHAR(30) NOT NULL DEFAULT 'rua';
+
 
 -- =========================
 -- ÍNDICES
