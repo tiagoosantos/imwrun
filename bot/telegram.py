@@ -597,9 +597,7 @@ def callback_cancelar(call):
 
     bot.send_message(chat_id, "❌ Registro cancelado.")
 
-    fake_message = call.message
-    fake_message.text = "/start"
-    bot.process_new_messages([fake_message])
+    enviar_menu_principal(call.message)
 
 
 # =======================
