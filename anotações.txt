@@ -1,0 +1,10 @@
+estou com erro na geração do relatório mensal, na ultima conversa do projeto no chartGPT deu o caminho para a resposta.
+seguir daí
+
+proximos passos:
+- usar o script para ler imagens e registrar treinos, já tem o script inicial no projeto
+- dar opção de ranking por mês e ranking geral(esse já existe)
+- incluir o botão de ranking por tempo
+- mostrar qual é posição da pessoa nos dois rankings
+
+já existe o projeto de 500k em 2026, cada mês tem uma meta, ver a possibilidade de incluir esse projeto para a pessoa acompanhar os seus resultados mensalmente e ver quanto ainda falta para concluir, uma possibilidade seria analisar a media de kilometragem por treino e contar quantos ainda faltam pra cumprir a meta
