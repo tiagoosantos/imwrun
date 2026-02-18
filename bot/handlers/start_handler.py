@@ -1,6 +1,9 @@
 # from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 from bot.keyboards.menu_keyboard import menu_principal
 from bot.handlers.registro_handler import registrar_command
+from bot.handlers.pace_handler import pace_command
+from bot.handlers.ranking_handler import ranking_km_command, ranking_tempo_command
+from bot.handlers.relatorio_handler import relatorio_command
 
 
 def register_start(bot, services):
@@ -77,10 +80,13 @@ def register_start(bot, services):
             registrar_command(bot, services, call.message)
 
         elif call.data == "cmd_ranking_km":
-            bot.send_message(chat_id, "/ranking_km")
+            ranking_km_command(bot, services, call.message)
+
+        elif call.data == "cmd_ranking_tempo":
+            ranking_tempo_command(bot, services, call.message)
 
         elif call.data == "cmd_pace":
-            bot.send_message(chat_id, "/pace")
+            pace_command(bot, services, call.message)
 
         elif call.data == "cmd_relatorio":
-            bot.send_message(chat_id, "/relatorio")
+            relatorio_command(bot, services, call.message)
