@@ -56,13 +56,13 @@ class CorridaRepository:
                 ),
             )
 
-        self.conn.commit()
+        # self.conn.commit()                    -- O commit é controlado pelo service, que pode ter mais de uma operação de escrita
 
     # --------------------------------------------------
     # LISTAR CORRIDAS DO USUÁRIO
     # --------------------------------------------------
 
-    def listar_corridas_usuario(self, telegram_id: int):
+    def listar_corridas_usuario(self, telegram_id: int) -> list[tuple]:
 
         with self.conn.cursor() as cur:
             cur.execute(
@@ -101,7 +101,7 @@ class CorridaRepository:
                     u.nome,
                     ROUND(COALESCE(SUM(c.distancia_metros), 0) / 1000.0, 2) AS total_km
                 FROM usuarios u
-                JOIN corridas c ON c.telegram_id = u.telegram_id
+                LEFT JOIN corridas c ON c.telegram_id = u.telegram_id
                 WHERE u.nome_confirmado = TRUE
                 GROUP BY u.telegram_id, u.nome
                 ORDER BY total_km DESC
@@ -126,7 +126,7 @@ class CorridaRepository:
                     u.nome,
                     COALESCE(SUM(c.tempo_segundos), 0) AS tempo_total_segundos
                 FROM usuarios u
-                JOIN corridas c ON c.telegram_id = u.telegram_id
+                LEFT JOIN corridas c ON c.telegram_id = u.telegram_id
                 WHERE u.nome_confirmado = TRUE
                 GROUP BY u.telegram_id, u.nome
                 ORDER BY tempo_total_segundos DESC

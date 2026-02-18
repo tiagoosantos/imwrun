@@ -1,6 +1,6 @@
 from telebot import TeleBot
 from config.settings import BOT_TOKEN
-from database.connection import get_connection
+from database.connection import init_pool
 
 from service.corrida_service import CorridaService
 from service.usuario_service import UsuarioService
@@ -25,15 +25,16 @@ def create_bot(log):
     # CONEXÃO BANCO
     # =======================
 
-    conn = get_connection()
+    # conn = get_connection()
+    init_pool(minconn=1, maxconn=20)
 
     # =======================
     # SERVICES
     # =======================
 
     services = {
-        "usuario": UsuarioService(conn),
-        "corrida": CorridaService(conn),
+        "usuario": UsuarioService(),
+        "corrida": CorridaService(),
         "relatorio": RelatorioService(),
         "log": log,
     }

@@ -24,8 +24,8 @@ class UsuarioRepository:
         """
 
         # Segurança extra: nunca permitir registrar bot
-        if user.is_bot:
-            return
+        # if user.is_bot:
+        #     return
 
         with self.conn.cursor() as cur:
             cur.execute("""
@@ -58,7 +58,7 @@ class UsuarioRepository:
                 False  # Nunca registrar bot
             ))
 
-            self.conn.commit()
+            # self.conn.commit()
 
     def atualizar_nome(self, telegram_id: int, nome: str):
         with self.conn.cursor() as cur:
@@ -69,4 +69,4 @@ class UsuarioRepository:
                 WHERE telegram_id = %s
             """, (nome, telegram_id))
 
-            self.conn.commit()
+            # self.conn.commit()

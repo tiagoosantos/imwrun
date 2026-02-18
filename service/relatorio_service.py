@@ -1,13 +1,17 @@
 import pandas as pd
-from database.connection import get_connection
+from functools import wraps
+from typing import Callable, Any
+
+from database.transaction import readonly
 
 
 class RelatorioService:
-    def gerar_relatorio_mensal(self, mes: str):
+
+    @readonly
+    def gerar_relatorio_mensal( self, mes: str, *, conn=None) -> str:
         """
         mes no formato: YYYY-MM (ex: 2026-01)
         """
-        conn = get_connection()
 
         query = """
         SELECT
@@ -20,7 +24,6 @@ class RelatorioService:
         """
 
         df = pd.read_sql(query, conn, params=(mes,))
-        conn.close()
 
         arquivo = f"relatorio_corridas_{mes}.xlsx"
         df.to_excel(arquivo, index=False)

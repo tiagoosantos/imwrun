@@ -1,15 +1,27 @@
+from functools import wraps
+from typing import Callable, Any
+
 from repository.usuario_repository import UsuarioRepository
+from database.transaction import transactional
 
 
 class UsuarioService:
 
-    def __init__(self, connection):
-        """
-        Service responsável por regras de negócio do usuário.
-        """
-        self.repo = UsuarioRepository(connection)
+    """
+    Service responsável por regras de negócio do usuário.
+    """
 
-    def registrar_ou_atualizar(self, telegram_user):
+    # ------------------------------------------------------
+    # REGISTRAR OU ATUALIZAR
+    # ------------------------------------------------------
+
+    @transactional
+    def registrar_ou_atualizar(
+        self,
+        telegram_user,
+        *,
+        conn=None
+    ):
         """
         Sempre que o usuário interage:
         - Insere se não existir
@@ -17,16 +29,21 @@ class UsuarioService:
         - Retorna status do cadastro
         """
 
+        if telegram_user.is_bot:
+            return "BOT_IGNORADO"
+
+        repo = UsuarioRepository(conn)
+
         # Insere ou atualiza informações básicas
-        self.repo.inserir_ou_atualizar_usuario(telegram_user)
+        repo.inserir_ou_atualizar_usuario(telegram_user)
 
         # Busca usuário atualizado
-        usuario = self.repo.buscar_por_telegram_id(telegram_user.id)
+        usuario = repo.buscar_por_telegram_id(telegram_user.id)
 
         if not usuario:
             return "NOVO"
 
-        # Estrutura esperada do retorno:
+        # Estrutura esperada:
         # (telegram_id, nome, nome_confirmado)
         _, nome, nome_confirmado = usuario
 
@@ -35,8 +52,18 @@ class UsuarioService:
 
         return "OK"
 
-    def salvar_nome(self, telegram_id: int, nome: str):
+    # ------------------------------------------------------
+    # SALVAR NOME CONFIRMADO
+    # ------------------------------------------------------
+
+    @transactional
+    def salvar_nome(self, telegram_id: int, nome: str, *, conn=None):
         """
         Atualiza o nome confirmado do usuário.
         """
-        self.repo.atualizar_nome(telegram_id, nome)
+
+        if not nome or not nome.strip():
+            raise ValueError("Nome inválido")
+
+        repo = UsuarioRepository(conn)
+        repo.atualizar_nome(telegram_id, nome.strip())
