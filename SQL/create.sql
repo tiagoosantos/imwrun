@@ -122,3 +122,6 @@ SELECT
 FROM usuarios u
 JOIN corridas c ON c.telegram_id = u.telegram_id
 GROUP BY u.telegram_id, u.nome, mes;
+
+CREATE INDEX idx_corridas_telegram_id ON corridas(telegram_id);
+CREATE INDEX idx_corridas_data ON corridas(data_corrida);

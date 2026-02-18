@@ -33,7 +33,7 @@ def create_bot(log):
 
     services = {
         "usuario": UsuarioService(conn),
-        "corrida": CorridaService(),
+        "corrida": CorridaService(conn),
         "relatorio": RelatorioService(),
         "log": log,
     }

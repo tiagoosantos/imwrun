@@ -20,9 +20,12 @@ class UsuarioRepository:
     def inserir_ou_atualizar_usuario(self, user):
         """
         Insere usuário se não existir.
-        Se já existir, atualiza dados dinâmicos (username, language, premium, etc).
-        Também atualiza ultimo_acesso.
+        Atualiza dados dinâmicos e ultimo_acesso.
         """
+
+        # Segurança extra: nunca permitir registrar bot
+        if user.is_bot:
+            return
 
         with self.conn.cursor() as cur:
             cur.execute("""
@@ -52,7 +55,7 @@ class UsuarioRepository:
                 user.last_name,
                 user.language_code,
                 getattr(user, "is_premium", False),
-                user.is_bot
+                False  # Nunca registrar bot
             ))
 
             self.conn.commit()

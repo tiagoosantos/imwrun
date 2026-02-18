@@ -60,8 +60,14 @@ def register_ranking(bot, services):
             },
         )
 
-        ranking = corrida_service.repo.ranking_km(limit=limit + offset)
-        ranking = ranking[offset:]
+        # Busca 1 registro extra para saber se há próxima página
+        ranking = corrida_service.obter_ranking_km(
+            limit=limit + 1,
+            offset=offset
+        )
+
+        tem_proxima = len(ranking) > limit
+        ranking = ranking[:limit]
 
         if not ranking:
             bot.send_message(chat_id, "📭 Página vazia.")
@@ -87,7 +93,7 @@ def register_ranking(bot, services):
                 )
             )
 
-        if len(ranking) == limit:
+        if tem_proxima:
             botoes.append(
                 InlineKeyboardButton(
                     "➡ Próxima",
@@ -122,7 +128,7 @@ def register_ranking(bot, services):
             },
         )
 
-        ranking = corrida_service.repo.ranking_tempo(limit=10)
+        ranking = corrida_service.obter_ranking_tempo(limit=10)
 
         if not ranking:
             bot.send_message(message.chat.id, "📭 Nenhuma corrida registrada.")

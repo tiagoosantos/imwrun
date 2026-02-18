@@ -1,11 +1,11 @@
-from database.connection import get_connection
-
-
 class CorridaRepository:
     """
     Responsável apenas por persistência e leitura de dados de corridas.
     Nenhuma regra de negócio deve ficar aqui.
     """
+
+    def __init__(self, connection):
+        self.conn = connection
 
     # --------------------------------------------------
     # INSERT
@@ -27,10 +27,7 @@ class CorridaRepository:
         Insere uma nova corrida para um usuário já existente.
         """
 
-        conn = get_connection()
-        cur = conn.cursor()
-
-        try:
+        with self.conn.cursor() as cur:
             cur.execute(
                 """
                 INSERT INTO corridas (
@@ -40,7 +37,7 @@ class CorridaRepository:
                     passos,
                     calorias,
                     pace_segundos,
-                    pace_origem, 
+                    pace_origem,
                     tipo_treino,
                     local_treino
                 )
@@ -59,11 +56,7 @@ class CorridaRepository:
                 ),
             )
 
-            conn.commit()
-
-        finally:
-            cur.close()
-            conn.close()
+        self.conn.commit()
 
     # --------------------------------------------------
     # LISTAR CORRIDAS DO USUÁRIO
@@ -71,10 +64,7 @@ class CorridaRepository:
 
     def listar_corridas_usuario(self, telegram_id: int):
 
-        conn = get_connection()
-        cur = conn.cursor()
-
-        try:
+        with self.conn.cursor() as cur:
             cur.execute(
                 """
                 SELECT
@@ -97,40 +87,30 @@ class CorridaRepository:
 
             return cur.fetchall()
 
-        finally:
-            cur.close()
-            conn.close()
-
     # --------------------------------------------------
     # RANKING KM
     # --------------------------------------------------
 
-    def ranking_km(self, limit: int = 10):
+    def ranking_km(self, limit: int = 10, offset: int = 0):
 
-        conn = get_connection()
-        cur = conn.cursor()
-
-        try:
+        with self.conn.cursor() as cur:
             cur.execute(
                 """
                 SELECT
                     u.telegram_id,
                     u.nome,
-                    ROUND(SUM(c.distancia_metros) / 1000.0, 2) AS total_km
+                    ROUND(COALESCE(SUM(c.distancia_metros), 0) / 1000.0, 2) AS total_km
                 FROM usuarios u
                 JOIN corridas c ON c.telegram_id = u.telegram_id
+                WHERE u.nome_confirmado = TRUE
                 GROUP BY u.telegram_id, u.nome
                 ORDER BY total_km DESC
-                LIMIT %s
+                LIMIT %s OFFSET %s
                 """,
-                (limit,),
+                (limit, offset),
             )
 
             return cur.fetchall()
-
-        finally:
-            cur.close()
-            conn.close()
 
     # --------------------------------------------------
     # RANKING TEMPO
@@ -138,18 +118,16 @@ class CorridaRepository:
 
     def ranking_tempo(self, limit: int = 10):
 
-        conn = get_connection()
-        cur = conn.cursor()
-
-        try:
+        with self.conn.cursor() as cur:
             cur.execute(
                 """
                 SELECT
                     u.telegram_id,
                     u.nome,
-                    SUM(c.tempo_segundos) AS tempo_total_segundos
+                    COALESCE(SUM(c.tempo_segundos), 0) AS tempo_total_segundos
                 FROM usuarios u
                 JOIN corridas c ON c.telegram_id = u.telegram_id
+                WHERE u.nome_confirmado = TRUE
                 GROUP BY u.telegram_id, u.nome
                 ORDER BY tempo_total_segundos DESC
                 LIMIT %s
@@ -158,7 +136,3 @@ class CorridaRepository:
             )
 
             return cur.fetchall()
-
-        finally:
-            cur.close()
-            conn.close()

@@ -1,10 +1,11 @@
 from repository.corrida_repository import CorridaRepository
+from typing import Optional
 
 
 class CorridaService:
 
-    def __init__(self):
-        self.repo = CorridaRepository()
+    def __init__(self, connection):
+        self.repo = CorridaRepository(connection)
 
     # =========================
     # REGRA DE NEGÓCIO
@@ -30,17 +31,12 @@ class CorridaService:
         telegram_id: int,
         tempo_segundos: int,
         distancia_metros: int,
-        passos: int | None,
-        calorias: int | None,
+        passos: Optional[int],
+        calorias: Optional[int],
         tipo_treino: str,
         local_treino: str,
-        pace_segundos: int | None = None,
+        pace_segundos: Optional[int] = None,
     ) -> None:
-        """
-        Regra:
-        - Se pace for informado manualmente → usar ele
-        - Senão → calcular automaticamente
-        """
 
         if tempo_segundos <= 0:
             raise ValueError("Tempo inválido")
@@ -48,9 +44,8 @@ class CorridaService:
         if distancia_metros <= 0:
             raise ValueError("Distância inválida")
 
-        # -------------------------
-        # PACE
-        # -------------------------
+        if pace_segundos is not None and pace_segundos <= 0:
+            raise ValueError("Pace inválido")
 
         if pace_segundos is None:
             pace_segundos = self.calcular_pace(
@@ -61,16 +56,8 @@ class CorridaService:
         else:
             pace_origem = "manual"
 
-        # -------------------------
-        # NORMALIZAÇÃO NOVA
-        # -------------------------
-
         tipo_treino = tipo_treino.lower().strip()
         local_treino = local_treino.lower().strip()
-
-        # -------------------------
-        # PERSISTÊNCIA
-        # -------------------------
 
         self.repo.inserir_corrida(
             telegram_id=telegram_id,
@@ -83,3 +70,13 @@ class CorridaService:
             tipo_treino=tipo_treino,
             local_treino=local_treino,
         )
+
+    # =========================
+    # RANKING
+    # =========================
+
+    def obter_ranking_km(self, limit: int, offset: int = 0):
+        return self.repo.ranking_km(limit, offset)
+
+    def obter_ranking_tempo(self, limit: int):
+        return self.repo.ranking_tempo(limit)

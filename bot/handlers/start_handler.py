@@ -1,5 +1,6 @@
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+# from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 from bot.keyboards.menu_keyboard import menu_principal
+from bot.handlers.registro_handler import registrar_command
 
 
 def register_start(bot, services):
@@ -7,9 +8,28 @@ def register_start(bot, services):
     usuario_service = services["usuario"]
     log = services["log"]
 
-    # =======================
+    # ==========================================================
+    # FUNÇÃO REUTILIZÁVEL PARA ENVIAR MENU
+    # ==========================================================
+
+    def enviar_menu_principal(message):
+
+        texto = (
+            "🏃 *Bem-vindo ao IMW Runner!*\n\n"
+            "Aqui você registra treinos e acompanha rankings de corrida.\n\n"
+            "*Escolha uma ação:*"
+        )
+
+        bot.send_message(
+            message.chat.id,
+            texto,
+            reply_markup=menu_principal(),
+            parse_mode="Markdown",
+        )
+
+    # ==========================================================
     # /start
-    # =======================
+    # ==========================================================
 
     @bot.message_handler(commands=["start"])
     def start(message):
@@ -39,28 +59,9 @@ def register_start(bot, services):
 
         enviar_menu_principal(message)
 
-    # =======================
-    # MENU PRINCIPAL
-    # =======================
-
-    def enviar_menu_principal(message):
-
-        texto = (
-            "🏃 *Bem-vindo ao IMW Runner!*\n\n"
-            "Aqui você registra treinos e acompanha rankings de corrida.\n\n"
-            "*Escolha uma ação:*"
-        )
-
-        bot.send_message(
-            message.chat.id,
-            texto,
-            reply_markup=menu_principal(),
-            parse_mode="Markdown",
-        )
-
-    # =======================
-    # CALLBACK MENU
-    # =======================
+    # ==========================================================
+    # CALLBACK MENU PRINCIPAL
+    # ==========================================================
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("cmd_"))
     def callbacks(call):
@@ -68,27 +69,18 @@ def register_start(bot, services):
         bot.answer_callback_query(call.id)
 
         chat_id = call.message.chat.id
-        user = call.from_user
 
-        comandos = {
-            "cmd_registrar": "/registrar",
-            "cmd_ranking_km": "/ranking_km",
-            "cmd_pace": "/pace",
-            "cmd_relatorio": "/relatorio",
-        }
+        # Aqui NÃO usamos fake_message
+        # Apenas enviamos o comando normalmente
 
-        func = comandos.get(call.data)
+        if call.data == "cmd_registrar":
+            registrar_command(bot, services, call.message)
 
-        if func:
-            func(call.message)
+        elif call.data == "cmd_ranking_km":
+            bot.send_message(chat_id, "/ranking_km")
 
-        if not func:
-            return
+        elif call.data == "cmd_pace":
+            bot.send_message(chat_id, "/pace")
 
-        # # cria uma mensagem fake para reaproveitar handlers existentes
-        # fake_message = call.message
-        # fake_message.text = comando
-        # fake_message.from_user = user
-        # fake_message.chat = call.message.chat
-
-        # bot.process_new_messages([fake_message])
+        elif call.data == "cmd_relatorio":
+            bot.send_message(chat_id, "/relatorio")
