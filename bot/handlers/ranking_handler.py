@@ -57,9 +57,12 @@ def ranking_tempo_command(bot, services, message):
     texto = "⏱ *Ranking por Tempo*\n\n"
 
     for pos, (_, nome, tempo_total) in enumerate(ranking, start=1):
-        minutos = tempo_total // 60
+
+        horas = tempo_total // 3600
+        minutos = (tempo_total % 3600) // 60
         segundos = tempo_total % 60
-        texto += f"{pos}º - {nome}: {minutos:02d}:{segundos:02d}\n"
+
+        texto += f"{pos}º - {nome}: {horas:02d}:{minutos:02d}:{segundos:02d}\n"
 
     bot.send_message(
         message.chat.id,
