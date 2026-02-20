@@ -1,10 +1,11 @@
 from telebot import TeleBot
-from config.settings import BOT_TOKEN
+from config.settings import BOT_TOKEN, GEMINI
 from database.connection import init_pool
 
 from service.corrida_service import CorridaService
 from service.usuario_service import UsuarioService
 from service.relatorio_service import RelatorioService
+from service.vision_service import TreinoVisionService
 
 from bot.handlers import register_handlers
 
@@ -36,6 +37,7 @@ def create_bot(log):
         "usuario": UsuarioService(),
         "corrida": CorridaService(),
         "relatorio": RelatorioService(),
+        "vision": TreinoVisionService(GEMINI),
         "log": log,
     }
 

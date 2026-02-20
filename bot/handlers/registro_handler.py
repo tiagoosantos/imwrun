@@ -47,34 +47,142 @@ def registrar_command(bot, services, message):
 
 def register_registro(bot, services):
 
+    corrida_service = services["corrida"]
+    log = services["log"]
+    vision_service = services.get("vision")
+
+    # ------------------------------------------------------
+    # COMANDO /registrar
+    # ------------------------------------------------------
     @bot.message_handler(commands=["registrar"])
     def registrar(message):
         registrar_command(bot, services, message)
 
+    # ------------------------------------------------------
+    # FOTO DO TREINO
+    # ------------------------------------------------------
+    @bot.message_handler(content_types=["photo"])
+    def registrar_foto(message):
+
+        if not vision_service:
+            return
+
+        chat_id = message.chat.id
+        correlation_id = message.message_id
+
+        log.info(
+            "Foto recebida para análise",
+            extra={
+                "telegram_id": chat_id,
+                "correlation_id": correlation_id,
+            },
+        )
+
+        try:
+            file_info = bot.get_file(message.photo[-1].file_id)
+            downloaded_file = bot.download_file(file_info.file_path)
+
+            caminho = f"temp_{chat_id}.jpg"
+
+            with open(caminho, "wb") as f:
+                f.write(downloaded_file)
+
+            resultado = vision_service.analisar_imagem(caminho)
+
+            # --------------------------------------------------
+            # ERRO NA IA
+            # --------------------------------------------------
+            if resultado.get("erro"):
+                bot.send_message(chat_id, "❌ Erro ao processar imagem.")
+                return
+
+            # --------------------------------------------------
+            # NÃO É TREINO → IGNORA AQUI
+            # --------------------------------------------------
+            if not resultado.get("eh_treino"):
+                log.info(
+                    "Imagem não é treino",
+                    extra={"telegram_id": chat_id}
+                )
+                return  # deixa outros handlers tratarem
+
+            # --------------------------------------------------
+            # É TREINO → INICIA FLUXO
+            # --------------------------------------------------
+            if not resultado.get("tempo") or not resultado.get("distancia_km"):
+                bot.send_message(chat_id, "⚠️ Não consegui identificar tempo ou distância.")
+                return
+
+            h, m, s = map(int, resultado["tempo"].split(":"))
+            tempo_segundos = h * 3600 + m * 60 + s
+            distancia_metros = float(resultado["distancia_km"]) * 1000
+
+            log.info(
+                "Treino identificado via imagem",
+                extra={
+                    "telegram_id": chat_id,
+                    "tempo_segundos": tempo_segundos,
+                    "distancia_metros": distancia_metros,
+                },
+            )
+
+            registro_temp[chat_id] = {
+                "tempo_segundos": tempo_segundos,
+                "distancia_metros": distancia_metros,
+                "passos": None,
+                "calorias": None,
+                "correlation_id": correlation_id,
+            }
+
+            msg = bot.send_message(
+                chat_id,
+                f"""
+            🏃 Identifiquei um treino!
+
+            📏 {resultado['distancia_km']} km
+            ⏱ {resultado['tempo']}
+            ⚡ Pace: {resultado.get('pace')}
+            📅 {resultado.get('data')}
+
+            Digite 'sair' para cancelar a qualquer momento.
+
+            👟 Informe os passos (ou 0 se não souber)
+            """
+            )
+
+            bot.register_next_step_handler(
+                msg,
+                lambda m: registrar_passos(
+                    bot,
+                    services,
+                    m,
+                    tempo_segundos,
+                    distancia_metros,
+                    correlation_id
+                )
+            )
+
+        except Exception:
+            log.exception("Erro ao analisar foto")
+            bot.send_message(chat_id, "❌ Erro ao processar imagem.")
+            limpar_sessao(chat_id)
+
+    # ------------------------------------------------------
     # CALLBACK TIPO
+    # ------------------------------------------------------
     @bot.callback_query_handler(func=lambda call: call.data.startswith("tipo_"))
     def callback_tipo(call):
 
         bot.answer_callback_query(call.id)
 
         chat_id = call.message.chat.id
-        log = services["log"]
 
         if chat_id not in registro_temp:
-            log.warning("Sessão expirada no tipo")
             bot.send_message(chat_id, "❌ Sessão expirada.")
             return
 
         tipo = call.data.replace("tipo_", "")
         registro_temp[chat_id]["tipo_treino"] = tipo
-
-        log.info(
-            "Tipo selecionado",
-            extra={
-                "telegram_id": chat_id,
-                "tipo_treino": tipo,
-            },
-        )
 
         bot.send_message(
             chat_id,
@@ -82,18 +190,18 @@ def register_registro(bot, services):
             reply_markup=teclado_local()
         )
 
+    # ------------------------------------------------------
     # CALLBACK LOCAL
+    # ------------------------------------------------------
     @bot.callback_query_handler(func=lambda call: call.data.startswith("local_"))
     def callback_local(call):
 
         bot.answer_callback_query(call.id)
 
         chat_id = call.message.chat.id
-        log = services["log"]
         dados = registro_temp.get(chat_id)
 
         if not dados:
-            log.warning("Sessão expirada no local")
             bot.send_message(chat_id, "❌ Sessão expirada.")
             return
 
@@ -121,20 +229,18 @@ def register_registro(bot, services):
             parse_mode="Markdown"
         )
 
+    # ------------------------------------------------------
     # CALLBACK CONFIRMAR
+    # ------------------------------------------------------
     @bot.callback_query_handler(func=lambda call: call.data == "confirmar_registro")
     def callback_confirmar(call):
 
         bot.answer_callback_query(call.id)
 
-        corrida_service = services["corrida"]
-        log = services["log"]
-
         chat_id = call.message.chat.id
         dados = registro_temp.get(chat_id)
 
         if not dados:
-            log.warning("Sessão expirada ao confirmar")
             bot.send_message(chat_id, "❌ Sessão expirada.")
             return
 
@@ -149,15 +255,6 @@ def register_registro(bot, services):
                 local_treino=dados["local_treino"],
             )
 
-            log.info(
-                "Corrida registrada com sucesso",
-                extra={
-                    "telegram_id": chat_id,
-                    "tempo_segundos": dados["tempo_segundos"],
-                    "distancia_metros": dados["distancia_metros"],
-                },
-            )
-
             bot.send_message(chat_id, "✅ Corrida registrada com sucesso!")
 
         except Exception:
@@ -167,16 +264,15 @@ def register_registro(bot, services):
         finally:
             limpar_sessao(chat_id)
 
+    # ------------------------------------------------------
     # CALLBACK CANCELAR
+    # ------------------------------------------------------
     @bot.callback_query_handler(func=lambda call: call.data == "cancelar_registro")
     def callback_cancelar(call):
 
         bot.answer_callback_query(call.id)
-
-        chat_id = call.message.chat.id
-        limpar_sessao(chat_id)
-
-        bot.send_message(chat_id, "❌ Registro cancelado.")
+        limpar_sessao(call.message.chat.id)
+        bot.send_message(call.message.chat.id, "❌ Registro cancelado.")
 
 
 # ==========================================================

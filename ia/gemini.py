@@ -19,8 +19,8 @@ INSTRUCOES_FILE = os.path.join(BASE_PATH, "ia", "instrucoes_gemini.txt")
 # modelos em ordem de prioridade
 MODELOS = [
     "gemini-3-flash-preview",  # rápido (preview, pode falhar)
-    "gemini-1.5-pro",          # estável
-    "gemini-1.0-pro",          # fallback final
+    "gemini-2.5-pro",          # estável
+    "gemini-2.0-pro",          # fallback final
 ]
 
 # histórico curto por usuário
