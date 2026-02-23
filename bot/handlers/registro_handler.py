@@ -253,14 +253,89 @@ def register_registro(bot, services):
         tempo_formatado = formatar_tempo(dados["tempo_segundos"])
         distancia_formatada = formatar_distancia(dados["distancia_metros"])
 
+        bot.send_message(
+            chat_id,
+            "📅 Deseja informar a data e hora do treino?\n\n"
+            "Formato: DD/MM/AAAA HH:MM\n"
+            "Exemplo: 10/03/2025 06:30\n\n"
+            "Digite 'pular' para usar a data atual.\n"
+            "Digite 'sair' para cancelar."
+        )
+
+        bot.register_next_step_handler(
+            call.message,
+            lambda m: registrar_data_hora(bot, services, m)
+        )
+
+
+    # ------------------------------------------------------
+    # DATA E HORA
+    # ------------------------------------------------------
+    def registrar_data_hora(bot, services, message):
+
+        chat_id = message.chat.id
+        texto = message.text.strip()
+
+        if usuario_cancelou(texto):
+            limpar_sessao(chat_id)
+            bot.send_message(chat_id, "❌ Registro cancelado.")
+            return
+
+        if texto.lower() == "pular":
+            registro_temp[chat_id]["data_corrida"] = None
+        else:
+            try:
+                data_convertida = datetime.strptime(texto, "%d/%m/%Y %H:%M")
+                registro_temp[chat_id]["data_corrida"] = data_convertida
+            except ValueError:
+                bot.send_message(
+                    chat_id,
+                    "❌ Formato inválido.\n\nUse: DD/MM/AAAA HH:MM\nOu digite 'pular'."
+                )
+                bot.register_next_step_handler(
+                    message,
+                    lambda m: registrar_data_hora(bot, services, m)
+                )
+                return
+
+        mostrar_resumo_final(bot, services, message)
+
+
+    # ------------------------------------------------------
+    # RESUMO FINAL (COM PACE E DATA)
+    # ------------------------------------------------------
+    def mostrar_resumo_final(bot, services, message):
+
+        chat_id = message.chat.id
+        dados = registro_temp.get(chat_id)
+
+        tempo_formatado = formatar_tempo(dados["tempo_segundos"])
+        distancia_formatada = formatar_distancia(dados["distancia_metros"])
+
+        if dados.get("pace_segundos") is not None:
+            pace_segundos = dados["pace_segundos"]
+            pace_min = pace_segundos // 60
+            pace_sec = pace_segundos % 60
+            pace_formatado = f"{pace_min:02d}:{pace_sec:02d}"
+        else:
+            pace_formatado = "N/A"
+
+        data_info = (
+            dados["data_corrida"].strftime("%d/%m/%Y %H:%M")
+            if dados.get("data_corrida")
+            else "Data atual"
+        )
+
         resumo = (
             "📋 *Resumo do treino*\n\n"
             f"⏱ Tempo: {tempo_formatado}\n"
             f"📏 Distância: {distancia_formatada}\n"
+            f"⚡ Pace: {pace_formatado}\n"
             f"👟 Passos: {dados['passos']}\n"
             f"🔥 Calorias: {dados['calorias']}\n"
             f"🏷 Tipo: {dados['tipo_treino']}\n"
-            f"📍 Local: {dados['local_treino']}\n\n"
+            f"📍 Local: {dados['local_treino']}\n"
+            f"📅 Data: {data_info}\n\n"
             "Confirmar registro?"
         )
 
@@ -395,12 +470,12 @@ def registrar_distancia(bot, services, message, tempo_segundos, correlation_id):
 
         msg = bot.send_message(
             message.chat.id,
-            "⚡ Informe o pace (MM:SS)\nDigite 0 para calcular automaticamente.\nDigite 'sair' para cancelar."
+            "👟 Informe os passos (ou 0 se não souber)"
         )
 
         bot.register_next_step_handler(
             msg,
-            lambda m: registrar_pace(
+            lambda m: registrar_passos(
                 bot,
                 services,
                 m,
@@ -421,94 +496,11 @@ def registrar_distancia(bot, services, message, tempo_segundos, correlation_id):
         )
 
 
-
-# ==========================================================
-# PACE (MANUAL OU CALCULADO)
-# ==========================================================
-
-def registrar_pace(bot, services, message, tempo_segundos, distancia_metros, correlation_id):
-
-    log = services["log"]
-    texto = message.text.strip()
-
-    if usuario_cancelou(texto):
-        limpar_sessao(message.chat.id)
-        bot.send_message(message.chat.id, "❌ Registro cancelado.")
-        return
-
-    try:
-        if texto == "0":
-            distancia_km = distancia_metros / 1000
-            pace_segundos = int(tempo_segundos / distancia_km)
-            origem = "calculado"
-        else:
-            pace_segundos = parse_tempo(texto)
-            origem = "manual"
-
-        minutos_final = pace_segundos // 60
-        segundos_final = pace_segundos % 60
-        pace_formatado = f'{minutos_final:02d}"{segundos_final:02d}\''
-
-        log.info(
-            "Pace processado",
-            extra={
-                "telegram_id": message.chat.id,
-                "correlation_id": correlation_id,
-                "tempo_segundos": tempo_segundos,
-                "distancia_metros": distancia_metros,
-                "pace_segundos": pace_segundos,
-                "origem": origem,
-            },
-        )
-
-        bot.send_message(
-            message.chat.id,
-            f"⏱ Seu pace é: *{pace_formatado} por km*",
-            parse_mode="Markdown",
-        )
-
-        msg = bot.send_message(
-            message.chat.id,
-            "👟 Informe os passos (ou 0 se não souber)"
-        )
-
-        bot.register_next_step_handler(
-            msg,
-            lambda m: registrar_passos(
-                bot,
-                services,
-                m,
-                tempo_segundos,
-                distancia_metros,
-                pace_segundos,
-                origem,
-                correlation_id
-            )
-        )
-
-    except Exception:
-        bot.send_message(
-            message.chat.id,
-            "❌ Formato inválido. Use MM:SS ou 0\nDigite 'sair' para cancelar."
-        )
-
-        bot.register_next_step_handler(
-            message,
-            lambda m: registrar_pace(
-                bot,
-                services,
-                m,
-                tempo_segundos,
-                distancia_metros,
-                correlation_id
-            )
-        )
-
 # ==========================================================
 # PASSOS
 # ==========================================================
 
-def registrar_passos(bot, services, message, tempo_segundos, distancia_metros, pace_segundos, pace_origem, correlation_id):
+def registrar_passos(bot, services, message, tempo_segundos, distancia_metros, correlation_id):
 
     log = services["log"]
 
@@ -543,8 +535,6 @@ def registrar_passos(bot, services, message, tempo_segundos, distancia_metros, p
                 m,
                 tempo_segundos,
                 distancia_metros,
-                pace_segundos,
-                pace_origem,
                 passos,
                 correlation_id
             )
@@ -555,7 +545,7 @@ def registrar_passos(bot, services, message, tempo_segundos, distancia_metros, p
         bot.send_message(message.chat.id, "❌ Informe apenas número inteiro")
         bot.register_next_step_handler(
             message,
-            lambda m: registrar_pace(
+            lambda m: registrar_passos(
                 bot,
                 services,
                 m,
@@ -570,7 +560,7 @@ def registrar_passos(bot, services, message, tempo_segundos, distancia_metros, p
 # CALORIAS
 # ==========================================================
 
-def registrar_calorias(bot, services, message, tempo_segundos, distancia_metros, pace_segundos, pace_origem, passos, correlation_id):
+def registrar_calorias(bot, services, message, tempo_segundos, distancia_metros, passos, correlation_id):
 
     log = services["log"]
 
@@ -595,8 +585,6 @@ def registrar_calorias(bot, services, message, tempo_segundos, distancia_metros,
         registro_temp[message.chat.id] = {
             "tempo_segundos": tempo_segundos,
             "distancia_metros": distancia_metros,
-            "pace_segundos": pace_segundos,
-            "pace_origem": pace_origem,
             "passos": passos,
             "calorias": calorias,
             "correlation_id": correlation_id,
@@ -619,8 +607,6 @@ def registrar_calorias(bot, services, message, tempo_segundos, distancia_metros,
                 m,
                 tempo_segundos,
                 distancia_metros,
-                pace_segundos,
-                pace_origem,
                 passos,
                 correlation_id
             )
