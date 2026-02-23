@@ -21,7 +21,7 @@ resolvido:
 - botão de ranking por tempo incluido
 
 em processo:
-- inserir treino por foto iniciado, está funcional porém não tem a opção de cancelar no meio do processo
+- inserir treino por foto iniciado, está funcional porém não tem a opção de cancelar no meio do processo, inclui um registro_temp() que executa a função de sair... verificar
 
 incluir
 - dar a opção de informar da data e a hora que o treino foi feito tanto para o registro manual quanto para a foto
@@ -30,3 +30,11 @@ incluir
 - uma possibilidade seria analisar a media de kilometragem por treino e contar quantos ainda faltam pra cumprir a meta
 
 verificar a possibilidade de dividir o registro_handler pq tá muito grande
+
+-------------
+-- 23/02/2026
+-------------
+
+resolvido:
+- registro por foto com opção de cancelamento
+- se não reconhecer a 

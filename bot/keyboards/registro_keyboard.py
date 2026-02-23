@@ -26,3 +26,11 @@ def teclado_confirmacao():
         InlineKeyboardButton("❌ Cancelar", callback_data="cancelar_registro"),
     )
     return markup
+
+def teclado_decisao_manual():
+    markup = InlineKeyboardMarkup()
+    markup.add(
+        InlineKeyboardButton("✅ Sim", callback_data="registro_manual_sim"),
+        InlineKeyboardButton("❌ Não", callback_data="registro_manual_nao"),
+    )
+    return markup

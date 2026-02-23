@@ -1,8 +1,11 @@
+from datetime import datetime
 from bot.state.registro_state import registro_temp, limpar_sessao
+from bot.keyboards.menu_keyboard import menu_principal
 from bot.keyboards.registro_keyboard import (
     teclado_tipo,
     teclado_local,
-    teclado_confirmacao
+    teclado_confirmacao, 
+    teclado_decisao_manual
 )
 from bot.utils.bot_utils import (
     usuario_cancelou,
@@ -100,6 +103,12 @@ def register_registro(bot, services):
             # NÃO É TREINO → IGNORA AQUI
             # --------------------------------------------------
             if not resultado.get("eh_treino"):
+                bot.send_message(
+                    chat_id,
+                    "⚠️ Não consegui identificar um treino nessa imagem.\n\n"
+                    "Se quiser tentar novamente, envie outra imagem."
+                )
+                
                 log.info(
                     "Imagem não é treino",
                     extra={"telegram_id": chat_id}
@@ -110,7 +119,13 @@ def register_registro(bot, services):
             # É TREINO → INICIA FLUXO
             # --------------------------------------------------
             if not resultado.get("tempo") or not resultado.get("distancia_km"):
-                bot.send_message(chat_id, "⚠️ Não consegui identificar tempo ou distância.")
+
+                bot.send_message(
+                    chat_id,
+                    "⚠️ Não consegui identificar tempo ou distância.\n\n"
+                    "Deseja registrar manualmente?",
+                    reply_markup=teclado_decisao_manual()
+                )
                 return
 
             h, m, s = map(int, resultado["tempo"].split(":"))
@@ -166,6 +181,33 @@ def register_registro(bot, services):
             log.exception("Erro ao analisar foto")
             bot.send_message(chat_id, "❌ Erro ao processar imagem.")
             limpar_sessao(chat_id)
+
+    # ------------------------------------------------------
+    # CALLBACK NÃO RECOCHECEU DADOS DA FOTO
+    # ------------------------------------------------------
+    @bot.callback_query_handler(func=lambda call: call.data in ["registro_manual_sim", "registro_manual_nao"])
+    def callback_registro_manual(call):
+
+        bot.answer_callback_query(call.id)
+
+        chat_id = call.message.chat.id
+
+        if call.data == "registro_manual_sim":
+            registrar_command(bot, services, call.message)
+
+        else:
+            bot.send_message(
+                chat_id,
+                "Foi mal, vou tentar melhorar nos próximos updates.\n\n"
+                "Se quiser tentar novamente, envie outra imagem."
+            )
+
+            bot.send_message(
+                chat_id,
+                "\nSe preferir, pode me perguntar o que quiser sobre o mundo da corrida ou dar uma olhada nas outras funções que fiz pra vc",
+                reply_markup=menu_principal(),
+                parse_mode="Markdown",
+            )
 
     # ------------------------------------------------------
     # CALLBACK TIPO
@@ -253,6 +295,9 @@ def register_registro(bot, services):
                 calorias=dados["calorias"],
                 tipo_treino=dados["tipo_treino"],
                 local_treino=dados["local_treino"],
+                pace_segundos=dados.get("pace_segundos"),
+                pace_origem=dados.get("pace_origem"),
+                data_corrida=dados.get("data_corrida"),
             )
 
             bot.send_message(chat_id, "✅ Corrida registrada com sucesso!")
@@ -350,12 +395,12 @@ def registrar_distancia(bot, services, message, tempo_segundos, correlation_id):
 
         msg = bot.send_message(
             message.chat.id,
-            "👟 Informe os passos (ou 0 se não souber)"
+            "⚡ Informe o pace (MM:SS)\nDigite 0 para calcular automaticamente.\nDigite 'sair' para cancelar."
         )
 
         bot.register_next_step_handler(
             msg,
-            lambda m: registrar_passos(
+            lambda m: registrar_pace(
                 bot,
                 services,
                 m,
@@ -376,11 +421,94 @@ def registrar_distancia(bot, services, message, tempo_segundos, correlation_id):
         )
 
 
+
+# ==========================================================
+# PACE (MANUAL OU CALCULADO)
+# ==========================================================
+
+def registrar_pace(bot, services, message, tempo_segundos, distancia_metros, correlation_id):
+
+    log = services["log"]
+    texto = message.text.strip()
+
+    if usuario_cancelou(texto):
+        limpar_sessao(message.chat.id)
+        bot.send_message(message.chat.id, "❌ Registro cancelado.")
+        return
+
+    try:
+        if texto == "0":
+            distancia_km = distancia_metros / 1000
+            pace_segundos = int(tempo_segundos / distancia_km)
+            origem = "calculado"
+        else:
+            pace_segundos = parse_tempo(texto)
+            origem = "manual"
+
+        minutos_final = pace_segundos // 60
+        segundos_final = pace_segundos % 60
+        pace_formatado = f'{minutos_final:02d}"{segundos_final:02d}\''
+
+        log.info(
+            "Pace processado",
+            extra={
+                "telegram_id": message.chat.id,
+                "correlation_id": correlation_id,
+                "tempo_segundos": tempo_segundos,
+                "distancia_metros": distancia_metros,
+                "pace_segundos": pace_segundos,
+                "origem": origem,
+            },
+        )
+
+        bot.send_message(
+            message.chat.id,
+            f"⏱ Seu pace é: *{pace_formatado} por km*",
+            parse_mode="Markdown",
+        )
+
+        msg = bot.send_message(
+            message.chat.id,
+            "👟 Informe os passos (ou 0 se não souber)"
+        )
+
+        bot.register_next_step_handler(
+            msg,
+            lambda m: registrar_passos(
+                bot,
+                services,
+                m,
+                tempo_segundos,
+                distancia_metros,
+                pace_segundos,
+                origem,
+                correlation_id
+            )
+        )
+
+    except Exception:
+        bot.send_message(
+            message.chat.id,
+            "❌ Formato inválido. Use MM:SS ou 0\nDigite 'sair' para cancelar."
+        )
+
+        bot.register_next_step_handler(
+            message,
+            lambda m: registrar_pace(
+                bot,
+                services,
+                m,
+                tempo_segundos,
+                distancia_metros,
+                correlation_id
+            )
+        )
+
 # ==========================================================
 # PASSOS
 # ==========================================================
 
-def registrar_passos(bot, services, message, tempo_segundos, distancia_metros, correlation_id):
+def registrar_passos(bot, services, message, tempo_segundos, distancia_metros, pace_segundos, pace_origem, correlation_id):
 
     log = services["log"]
 
@@ -415,6 +543,8 @@ def registrar_passos(bot, services, message, tempo_segundos, distancia_metros, c
                 m,
                 tempo_segundos,
                 distancia_metros,
+                pace_segundos,
+                pace_origem,
                 passos,
                 correlation_id
             )
@@ -425,7 +555,7 @@ def registrar_passos(bot, services, message, tempo_segundos, distancia_metros, c
         bot.send_message(message.chat.id, "❌ Informe apenas número inteiro")
         bot.register_next_step_handler(
             message,
-            lambda m: registrar_passos(
+            lambda m: registrar_pace(
                 bot,
                 services,
                 m,
@@ -440,7 +570,7 @@ def registrar_passos(bot, services, message, tempo_segundos, distancia_metros, c
 # CALORIAS
 # ==========================================================
 
-def registrar_calorias(bot, services, message, tempo_segundos, distancia_metros, passos, correlation_id):
+def registrar_calorias(bot, services, message, tempo_segundos, distancia_metros, pace_segundos, pace_origem, passos, correlation_id):
 
     log = services["log"]
 
@@ -465,6 +595,8 @@ def registrar_calorias(bot, services, message, tempo_segundos, distancia_metros,
         registro_temp[message.chat.id] = {
             "tempo_segundos": tempo_segundos,
             "distancia_metros": distancia_metros,
+            "pace_segundos": pace_segundos,
+            "pace_origem": pace_origem,
             "passos": passos,
             "calorias": calorias,
             "correlation_id": correlation_id,
@@ -487,6 +619,8 @@ def registrar_calorias(bot, services, message, tempo_segundos, distancia_metros,
                 m,
                 tempo_segundos,
                 distancia_metros,
+                pace_segundos,
+                pace_origem,
                 passos,
                 correlation_id
             )
