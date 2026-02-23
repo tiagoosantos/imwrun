@@ -1,6 +1,4 @@
-from typing import Optional, Callable, Any
-from functools import wraps
-
+from typing import Optional
 from repository.corrida_repository import CorridaRepository
 from database.transaction import transactional, readonly
 
@@ -43,6 +41,7 @@ class CorridaService:
         tipo_treino: str,
         local_treino: str,
         pace_segundos: Optional[int] = None,
+        data_corrida=None,  # ✅ NOVO
         *,
         conn=None
     ) -> None:
@@ -56,10 +55,19 @@ class CorridaService:
         if distancia_metros <= 0:
             raise ValueError("Distância inválida")
 
+        if passos is not None and passos < 0:
+            raise ValueError("Passos inválidos")
+
+        if calorias is not None and calorias < 0:
+            raise ValueError("Calorias inválidas")
+
         if pace_segundos is not None and pace_segundos <= 0:
             raise ValueError("Pace inválido")
 
-        # Se não foi informado manualmente, calcula
+        # --------------------------------------------------
+        # Define origem do pace
+        # --------------------------------------------------
+
         if pace_segundos is None:
             pace_segundos = self.calcular_pace(
                 tempo_segundos,
@@ -69,8 +77,16 @@ class CorridaService:
         else:
             pace_origem = "manual"
 
+        # --------------------------------------------------
+        # Normalizações
+        # --------------------------------------------------
+
         tipo_treino = tipo_treino.lower().strip()
         local_treino = local_treino.lower().strip()
+
+        # --------------------------------------------------
+        # Persistência
+        # --------------------------------------------------
 
         repo = CorridaRepository(conn)
 
@@ -84,6 +100,7 @@ class CorridaService:
             pace_origem=pace_origem,
             tipo_treino=tipo_treino,
             local_treino=local_treino,
+            data_corrida=data_corrida,  # ✅ NOVO
         )
 
     # ------------------------------------------------------

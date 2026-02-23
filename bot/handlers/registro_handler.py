@@ -279,6 +279,10 @@ def register_registro(bot, services):
         if usuario_cancelou(texto):
             limpar_sessao(chat_id)
             bot.send_message(chat_id, "❌ Registro cancelado.")
+            log.info(
+                "Registro cancelado via texto",
+                extra={"telegram_id": chat_id}
+            )
             return
 
         if texto.lower() == "pular":
@@ -312,13 +316,21 @@ def register_registro(bot, services):
         tempo_formatado = formatar_tempo(dados["tempo_segundos"])
         distancia_formatada = formatar_distancia(dados["distancia_metros"])
 
-        if dados.get("pace_segundos") is not None:
-            pace_segundos = dados["pace_segundos"]
-            pace_min = pace_segundos // 60
-            pace_sec = pace_segundos % 60
-            pace_formatado = f"{pace_min:02d}:{pace_sec:02d}"
-        else:
-            pace_formatado = "N/A"
+        pace_segundos = dados.get("pace_segundos")
+
+        # Se não foi informado manualmente, calcula para exibir no resumo
+        if pace_segundos is None:
+            corrida_service = services["corrida"]
+            pace_segundos = corrida_service.calcular_pace(
+                dados["tempo_segundos"],
+                dados["distancia_metros"]
+            )
+
+        pace_min = pace_segundos // 60
+        pace_sec = pace_segundos % 60
+        pace_formatado = f"{pace_min:02d}:{pace_sec:02d}"
+        # else:
+        #     pace_formatado = "N/A"
 
         data_info = (
             dados["data_corrida"].strftime("%d/%m/%Y %H:%M")
@@ -371,11 +383,18 @@ def register_registro(bot, services):
                 tipo_treino=dados["tipo_treino"],
                 local_treino=dados["local_treino"],
                 pace_segundos=dados.get("pace_segundos"),
-                pace_origem=dados.get("pace_origem"),
-                data_corrida=dados.get("data_corrida"),
+                # pace_origem=dados.get("pace_origem"),
+                data_corrida=dados.get("data_corrida")
             )
 
             bot.send_message(chat_id, "✅ Corrida registrada com sucesso!")
+            log.info(
+                "CORRIDA REGISTRADA",
+                extra={
+                    "telegram_id": chat_id,
+                    "correlation_id": dados["correlation_id"],
+                },
+            )
 
         except Exception:
             log.exception("Erro ao registrar corrida")
@@ -393,6 +412,10 @@ def register_registro(bot, services):
         bot.answer_callback_query(call.id)
         limpar_sessao(call.message.chat.id)
         bot.send_message(call.message.chat.id, "❌ Registro cancelado.")
+        log.info(
+            "Registro cancelado via botão",
+            extra={"telegram_id": call.message.chat.id}
+        )
 
 
 # ==========================================================

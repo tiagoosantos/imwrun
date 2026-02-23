@@ -21,42 +21,78 @@ class CorridaRepository:
         pace_segundos: int,
         pace_origem: str,
         tipo_treino: str,
-        local_treino: str
+        local_treino: str,
+        data_corrida=None,  # ✅ NOVO
     ) -> None:
         """
         Insere uma nova corrida para um usuário já existente.
         """
 
         with self.conn.cursor() as cur:
-            cur.execute(
-                """
-                INSERT INTO corridas (
-                    telegram_id,
-                    tempo_segundos,
-                    distancia_metros,
-                    passos,
-                    calorias,
-                    pace_segundos,
-                    pace_origem,
-                    tipo_treino,
-                    local_treino
-                )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """,
-                (
-                    telegram_id,
-                    tempo_segundos,
-                    distancia_metros,
-                    passos,
-                    calorias,
-                    pace_segundos,
-                    pace_origem,
-                    tipo_treino,
-                    local_treino
-                ),
-            )
 
-        # self.conn.commit()                    -- O commit é controlado pelo service, que pode ter mais de uma operação de escrita
+            # --------------------------------------------------
+            # Se data_corrida for informada → inclui no INSERT
+            # Senão → usa default do banco (CURRENT_TIMESTAMP)
+            # --------------------------------------------------
+
+            if data_corrida is not None:
+                cur.execute(
+                    """
+                    INSERT INTO corridas (
+                        telegram_id,
+                        tempo_segundos,
+                        distancia_metros,
+                        passos,
+                        calorias,
+                        pace_segundos,
+                        pace_origem,
+                        tipo_treino,
+                        local_treino,
+                        data_corrida
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        telegram_id,
+                        tempo_segundos,
+                        distancia_metros,
+                        passos,
+                        calorias,
+                        pace_segundos,
+                        pace_origem,
+                        tipo_treino,
+                        local_treino,
+                        data_corrida,
+                    ),
+                )
+            else:
+                cur.execute(
+                    """
+                    INSERT INTO corridas (
+                        telegram_id,
+                        tempo_segundos,
+                        distancia_metros,
+                        passos,
+                        calorias,
+                        pace_segundos,
+                        pace_origem,
+                        tipo_treino,
+                        local_treino
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        telegram_id,
+                        tempo_segundos,
+                        distancia_metros,
+                        passos,
+                        calorias,
+                        pace_segundos,
+                        pace_origem,
+                        tipo_treino,
+                        local_treino,
+                    ),
+                )
 
     # --------------------------------------------------
     # LISTAR CORRIDAS DO USUÁRIO
