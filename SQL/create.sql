@@ -129,3 +129,13 @@ CREATE INDEX idx_usuarios_nome_confirmado ON usuarios(nome_confirmado);
 
 CREATE UNIQUE INDEX idx_usuarios_telegram_id
 ON usuarios(telegram_id);
+
+CREATE TABLE public.post_geracoes (
+    id SERIAL PRIMARY KEY,
+    telegram_id BIGINT NOT NULL,
+    data_geracao DATE NOT NULL DEFAULT CURRENT_DATE,
+    criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_post_geracoes_telegram_data
+ON public.post_geracoes (telegram_id, data_geracao);

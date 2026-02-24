@@ -9,6 +9,7 @@ from .registro_manual import iniciar_registro_manual
 from .registro_foto import processar_foto
 from service.registro_service import mostrar_resumo_final, confirmar_registro
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+from bot.state.post_state import post_temp
 
 
 # ==========================================
@@ -42,7 +43,12 @@ def register_registro(bot, services):
     # FOTO
     # --------------------------------------
 
-    @bot.message_handler(content_types=["photo"])
+    from bot.handlers.post_handler import post_temp
+
+    @bot.message_handler(
+        content_types=["photo"],
+        func=lambda m: m.chat.id not in post_temp
+    )
     def foto(message):
         processar_foto(bot, services, message)
 

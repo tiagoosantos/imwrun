@@ -5,6 +5,7 @@ from .ranking_handler import register_ranking
 from .relatorio_handler import register_relatorio
 from .cadastro_handler import register_cadastro
 from .ia_handler import register_ia
+from .post_handler import register_post
 
 def register_handlers(bot, services):
     register_start(bot, services)
@@ -14,3 +15,4 @@ def register_handlers(bot, services):
     register_relatorio(bot, services)
     register_cadastro(bot, services)
     register_ia(bot, services)
+    register_post(bot, services)

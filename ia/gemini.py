@@ -1,7 +1,9 @@
 import os
 import time
 import logging
+import base64
 from google import genai
+from google.genai import types
 from google.genai.errors import ServerError, ClientError
 import telegramify_markdown
 from config.settings import GEMINI
@@ -183,3 +185,77 @@ def responder_com_ia(bot, message):
         cache_respostas[chave_cache],
         parse_mode="MarkdownV2"
     )
+
+
+class GeminiClient:
+
+    def __init__(self, api_key: str):
+        self.client = genai.Client(api_key=api_key)
+
+    # ======================================================
+    # GERAÇÃO DE IMAGENS PARA POST (3 variações)
+    # ======================================================
+
+    def generate_images(
+        self,
+        prompt: str,
+        images: list[str],
+        n: int = 3,
+        size: str = "1080x1920"
+    ) -> list[bytes]:
+
+        """
+        prompt: texto final já montado pelo PostService
+        images: lista de imagens em base64 (sem header data:image/...)
+        n: quantidade de imagens a gerar
+        size: resolução desejada (vertical)
+        """
+
+        contents = []
+
+        # 🔹 Adicionar imagens enviadas pelo usuário
+        for img_base64 in images:
+            contents.append(
+                types.Part.from_bytes(
+                    data=base64.b64decode(img_base64),
+                    mime_type="image/jpeg"
+                )
+            )
+
+        # 🔹 Adicionar instrução textual forte
+        prompt_final = f"""
+        {prompt}
+
+        Gere exatamente {n} imagens diferentes.
+        Formato obrigatório: {size}.
+        Orientação vertical.
+        Cada imagem deve ter layout diferente.
+        Não gere texto explicativo fora das imagens.
+        """
+
+        contents.append(prompt_final)
+
+        # 🔹 Chamada ao Gemini
+        response = self.client.models.generate_content(
+            model="gemini-2.0-flash-exp",  # modelo multimodal rápido
+            contents=contents,
+            config=types.GenerateContentConfig(
+                response_modalities=["IMAGE"]
+            )
+        )
+
+        imagens_bytes = []
+
+        # 🔹 Extrair imagens retornadas
+        for candidate in response.candidates:
+            for part in candidate.content.parts:
+                if part.inline_data:
+                    imagens_bytes.append(
+                        base64.b64decode(part.inline_data.data)
+                    )
+
+        # Segurança: garantir 3 outputs
+        if len(imagens_bytes) < n:
+            raise Exception("Gemini não retornou imagens suficientes.")
+
+        return imagens_bytes[:n]

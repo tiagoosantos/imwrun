@@ -1,0 +1,14 @@
+{
+  "motivacional": {
+    "titulo": "🔥 Motivacional",
+    "texto": "Crie um post impactante e motivacional com frase forte e energia alta."
+  },
+  "performance": {
+    "titulo": "📈 Performance",
+    "texto": "Crie um post focado em desempenho, superação de limites e evolução pessoal."
+  },
+  "superacao": {
+    "titulo": "💪 Superação",
+    "texto": "Crie um post emocional sobre disciplina, foco e consistência nos treinos."
+  }
+}

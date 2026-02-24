@@ -27,6 +27,18 @@ class CorridaService:
         return int((tempo_segundos * 1000) / distancia_metros)
 
     # ------------------------------------------------------
+    # CONSULTAS
+    # ------------------------------------------------------
+
+    @readonly
+    def listar_ultimos(self, telegram_id: int, limite: int = 5, *, conn=None):
+        """
+        Retorna os últimos treinos do usuário
+        """
+        repo = CorridaRepository(conn)
+        return repo.listar_corridas_usuario(telegram_id, limite)
+
+    # ------------------------------------------------------
     # REGISTRO DE CORRIDA
     # ------------------------------------------------------
 
