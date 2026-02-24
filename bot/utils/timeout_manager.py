@@ -5,7 +5,7 @@ from bot.state.registro_state import registro_temp, limpar_sessao
 timers = {}
 
 
-def iniciar_timeout(bot, chat_id, segundos=60):
+def iniciar_timeout(bot, chat_id, segundos=90):
 
     cancelar_timeout(chat_id)
 
