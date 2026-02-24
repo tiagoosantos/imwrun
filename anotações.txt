@@ -36,5 +36,16 @@ verificar a possibilidade de dividir o registro_handler pq tá muito grande
 -------------
 
 resolvido:
-- registro por foto com opção de cancelamento
-- se não reconhecer a 
+- registro por foto com opção de cancelamento, se não reconhecer a foto ele avisa
+- registro tanto manual quanto por foto pede a data e a hora do treino
+
+incluir:
+- projeto 500k em 2026
+- mostrar qual é posição da pessoa nos dois rankings
+
+possibilidades:
+- dividir o ranking por mes
+- uma possibilidade seria analisar a media de kilometragem por treino e contar quantos ainda faltam pra cumprir a meta
+
+proximo passo:
+- separar o registro_handler, está muito grande

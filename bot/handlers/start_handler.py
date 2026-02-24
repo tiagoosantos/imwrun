@@ -1,6 +1,6 @@
 # from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 from bot.keyboards.menu_keyboard import menu_principal
-from bot.handlers.registro_handler import registrar_command
+from bot.handlers.registro_handler import iniciar_registro_manual
 from bot.handlers.pace_handler import pace_command
 from bot.handlers.ranking_handler import ranking_km_command, ranking_tempo_command
 from bot.handlers.relatorio_handler import relatorio_command
@@ -77,7 +77,7 @@ def register_start(bot, services):
         # Apenas enviamos o comando normalmente
 
         if call.data == "cmd_registrar":
-            registrar_command(bot, services, call.message)
+            iniciar_registro_manual(bot, services, call.message)
 
         elif call.data == "cmd_ranking_km":
             ranking_km_command(bot, services, call.message)
