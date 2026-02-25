@@ -11,7 +11,6 @@ from service.post_service import PostService
 
 from repository.post_repository import PostRepository
 
-from ia.gemini import GeminiClient
 from ia.post_generator import PostGenerator
 
 from bot.handlers import register_handlers
@@ -30,12 +29,9 @@ def create_bot(log):
     init_pool(minconn=1, maxconn=20)
 
     # ==========================
-    # GEMINI
+    # POST GENERATOR (LOCAL)
     # ==========================
-    gemini_client = GeminiClient(api_key=GEMINI)
-
-    # Generator responsável por gerar imagens + aplicar logo
-    post_generator = PostGenerator(gemini_client)
+    post_generator = PostGenerator()
 
     # ==========================
     # REPOSITORIES
@@ -48,10 +44,10 @@ def create_bot(log):
     usuario_service = UsuarioService()
     corrida_service = CorridaService()
     relatorio_service = RelatorioService()
-    vision_service = TreinoVisionService(GEMINI)
+    vision_service = TreinoVisionService(GEMINI)  # continua usando Gemini
 
     # ==========================
-    # NOVO POST SERVICE
+    # POST SERVICE
     # ==========================
     post_service = PostService(
         post_repository=post_repository,
@@ -67,12 +63,12 @@ def create_bot(log):
         "corrida": corrida_service,
         "relatorio": relatorio_service,
         "vision": vision_service,
-        "post": post_service,   # 👈 NOVO SERVICE
+        "post": post_service,
         "log": log,
     }
 
     # ==========================
-    # REGISTRAR TODOS HANDLERS
+    # REGISTRAR HANDLERS
     # ==========================
     register_handlers(bot, services)
 
