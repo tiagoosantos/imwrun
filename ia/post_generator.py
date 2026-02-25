@@ -34,16 +34,15 @@ class PostGenerator:
 
     def gerar(self, fotos: list[str], prompt: str) -> list[str]:
 
-        # 1️⃣ Converter imagens para base64
-        imagens_base64 = [self._encode_image(p) for p in fotos]
-
-        # 2️⃣ Solicitar 3 imagens ao Gemini
         imagens_geradas_bytes = self.gemini.generate_images(
             prompt=prompt,
-            images=imagens_base64,
-            n=3,
-            size="1080x1920"
+            foto_path=fotos[0],  
+            n=3
         )
+
+        if not imagens_geradas_bytes:
+            print("Pulando a geração deste post devido a um erro na API.")
+            return []
 
         # 3️⃣ Salvar + aplicar logo
         arquivos_salvos = []

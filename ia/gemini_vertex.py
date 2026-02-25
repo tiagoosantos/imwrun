@@ -194,10 +194,6 @@ def responder_com_ia(bot, message):
 class GeminiClient:
 
     def __init__(self, api_key: str):
-        # 1. Ajuste da API Version: Modelos experimentais de imagem 
-        # costumam rodar na v1alpha ou v1beta. 
-        # A SDK atual gerencia isso melhor se usarmos o client padrão,
-        # mas vamos garantir o modelo correto no método.
         self.client = genai.Client(api_key=api_key)
 
     def generate_images(
@@ -208,69 +204,33 @@ class GeminiClient:
     ) -> list[bytes]:
 
         # 1️⃣ Ler a foto local
-        try:
-            with open(foto_path, "rb") as f:
-                foto_bytes = f.read()
-        except FileNotFoundError:
-            print(f"❌ Arquivo não encontrado: {foto_path}")
-            return []
+        with open(foto_path, "rb") as f:
+            foto_bytes = f.read()
 
-        # ==========================================
-        # ETAPA 1: ANÁLISE (O Flash 2.5 já está estável)
-        # ==========================================
-        print("👁️ 1/2: Analisando referência...")
-        try:
-            imagem_part = types.Part.from_bytes(data=foto_bytes, mime_type="image/jpeg")
-            
-            resposta_visao = self.client.models.generate_content(
-                model="gemini-2.5-flash", 
-                contents=[imagem_part, "Descreva a pose, roupas e ambiente desta foto para um gerador de imagens."]
+        # 2️⃣ Instanciar o objeto Image
+        imagem_referencia = types.Image(
+            image_bytes=foto_bytes,
+            mime_type="image/jpeg"
+        )
+
+        # 3️⃣ AQUI ESTÁ A CORREÇÃO: Mudar de 'image' para 'base_image'
+        response = self.client.models.edit_image(
+            model="imagen-4.0-fast-generate-001",
+            prompt=prompt,
+            reference_images=[imagem_referencia],
+            config=types.EditImageConfig(
+                number_of_images=n,
+                output_mime_type="image/jpeg"
             )
-            descricao = resposta_visao.text
-        except Exception as e:
-            print(f"❌ Erro na visão: {e}")
-            return []
+        )
 
-        # ==========================================
-        # ETAPA 2: GERAÇÃO (Ajuste do nome do Modelo)
-        # ==========================================
-        
-        # DICA: Na sua lista, o modelo 'gemini-2.0-flash-exp-image-generation' 
-        # é o que está explicitamente marcado para 'image-generation' no Free Tier.
-        # O '2.5-flash-image' pode estar restrito a certas regiões ou versões.
-        
-        modelo_gerador = "gemini-2.0-flash-exp-image-generation" 
+        # 4️⃣ Extrair os bytes das imagens geradas
+        imagens_bytes = [
+            img.image.image_bytes
+            for img in response.generated_images
+        ]
 
-        prompt_final = f"{prompt}. Siga estas características: {descricao}"
+        if len(imagens_bytes) < n:
+            raise Exception("A API não retornou a quantidade solicitada de imagens.")
 
-        print(f"🎨 2/2: Gerando imagens com {modelo_gerador}...")
-        try:
-            # Usamos o método nativo de geração de imagens do Gemini
-            response = self.client.models.generate_images(
-                model=modelo_gerador,
-                prompt=prompt_final,
-                config=types.GenerateImagesConfig(
-                    number_of_images=n,
-                    aspect_ratio="9:16",
-                    output_mime_type="image/jpeg"
-                )
-            )
-
-            return [img.image.image_bytes for img in response.generated_images]
-
-        except Exception as e:
-            # Se o 2.0 ainda falhar, tentamos o Nano Banana que é o fallback universal
-            if "404" in str(e) or "not found" in str(e).lower():
-                print("⚠️ Tentando modelo alternativo (Nano Banana)...")
-                try:
-                    response = self.client.models.generate_images(
-                        model="nano-banana-pro-preview",
-                        prompt=prompt_final,
-                        config=types.GenerateImagesConfig(number_of_images=n, aspect_ratio="9:16")
-                    )
-                    return [img.image.image_bytes for img in response.generated_images]
-                except Exception as e2:
-                    print(f"❌ Erro persistente: {e2}")
-            else:
-                print(f"❌ Erro na geração: {e}")
-            return []
+        return imagens_bytes

@@ -37,6 +37,16 @@ class CorridaService:
         """
         repo = CorridaRepository(conn)
         return repo.listar_corridas_usuario(telegram_id, limite)
+    
+    
+    @readonly
+    def buscar_por_id(self, telegram_id: int, treino_id: int, *, conn=None):
+        """
+        Retorna um treino específico do usuário
+        """
+        repo = CorridaRepository(conn)
+        return repo.buscar_por_id(telegram_id, treino_id)
+
 
     # ------------------------------------------------------
     # REGISTRO DE CORRIDA

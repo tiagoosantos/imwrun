@@ -49,3 +49,15 @@ possibilidades:
 
 proximo passo:
 - separar o registro_handler, está muito grande
+
+
+-------------
+-- 23/02/2026
+-------------
+
+incluso:
+- serviço de postar treino: recebe foto, busca do banco os ultimos treinos e carrega os dados, manda para o gemini gerar a foto, inclui o logo e oferece três opções para escolher. Ainda não está conseguindo carregar os ultimos treinos
+    * mudar o fluxo de escolher o treino primeiro e depois mandar a foto
+
+verificar:
+- os erros estão indo para o chat do telegram, devem ir para outro chat que só eu tenho acesso

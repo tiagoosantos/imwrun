@@ -19,8 +19,13 @@ def parse_distancia(texto: str) -> int:
     return int(km_float * 1000)
 
 def formatar_tempo(segundos: int) -> str:
-    minutos = segundos // 60
+    horas = segundos // 3600
+    minutos = (segundos % 3600) // 60
     segundos_restantes = segundos % 60
+    
+    if horas > 0:
+        return f"{horas:02d}:{minutos:02d}:{segundos_restantes:02d}"
+    
     return f"{minutos:02d}:{segundos_restantes:02d}"
 
 def formatar_distancia(distancia_metros: int) -> str:

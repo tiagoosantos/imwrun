@@ -98,31 +98,67 @@ class CorridaRepository:
     # LISTAR CORRIDAS DO USUÁRIO
     # --------------------------------------------------
 
-    def listar_corridas_usuario(self, telegram_id: int) -> list[tuple]:
+    def listar_corridas_usuario(self, telegram_id: int, limite: int) -> list[tuple]:
+
+        with self.conn.cursor() as cur:
+            # cur.execute(
+            #     """
+            #     SELECT
+            #         id,
+            #         tempo_segundos,
+            #         distancia_metros,
+            #         passos,
+            #         calorias,
+            #         pace_segundos,
+            #         pace_origem,
+            #         data_corrida,
+            #         tipo_treino,
+            #         local_treino
+            #     FROM corridas
+            #     WHERE telegram_id = %s
+            #     ORDER BY data_corrida DESC
+            #     """,
+            #     (telegram_id,),
+            # )
+            cur.execute(
+                            """
+                            SELECT
+                                id,
+                                tempo_segundos,
+                                distancia_metros
+                            FROM corridas
+                            WHERE telegram_id = %s
+                            ORDER BY data_corrida DESC
+                            LIMIT %s
+                            """,
+                            (telegram_id, limite),
+                        )
+
+            return cur.fetchall()
+        
+    # --------------------------------------------------
+    # LISTAR CORRIDAS DE USUÁRIO POR ID (para gerar post)
+    # --------------------------------------------------
+
+    def buscar_por_id(self, telegram_id: int, treino_id: int):
 
         with self.conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT
-                    id,
-                    tempo_segundos,
+                SELECT id,
                     distancia_metros,
-                    passos,
+                    tempo_segundos,
                     calorias,
-                    pace_segundos,
-                    pace_origem,
-                    data_corrida,
-                    tipo_treino,
-                    local_treino
-                FROM corridas
+                    pace_segundos
+                FROM public.corridas
                 WHERE telegram_id = %s
-                ORDER BY data_corrida DESC
+                AND id = %s
                 """,
-                (telegram_id,),
+                (telegram_id, treino_id)
             )
 
-            return cur.fetchall()
-
+            return cur.fetchone()
+        
     # --------------------------------------------------
     # RANKING KM
     # --------------------------------------------------

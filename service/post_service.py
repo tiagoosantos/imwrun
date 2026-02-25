@@ -2,6 +2,7 @@ import os
 import json
 import uuid
 from pathlib import Path
+from bot.utils.bot_utils import formatar_tempo, formatar_distancia
 
 
 # ==========================
@@ -115,7 +116,19 @@ class PostService:
 
     def _montar_prompt(self, treino, prompt_usuario):
 
-        distancia_km = treino.distancia_metros / 1000
+        if not treino:
+            raise ValueError("Treino não encontrado.")
+
+        # treino = (id, distancia_metros, tempo_segundos, calorias, pace_segundos)
+        distancia_metros = treino[1]
+        tempo_segundos = treino[2]
+        calorias = treino[3]
+        pace_segundos = treino[4]
+
+        distancia_km = formatar_distancia(distancia_metros)
+        tempo_formatado = formatar_tempo(tempo_segundos)
+        calorias_formatado = f"{calorias} kcal" if calorias else "N/A"
+        pace_formatado = formatar_tempo(pace_segundos) + " /km" if pace_segundos else "N/A"
 
         prompt_base = f"""
         Gere 3 imagens verticais no formato 1080x1920 (TikTok/Reels).
@@ -124,10 +137,10 @@ class PostService:
         Integre todas as fotos de forma harmônica.
 
         Dados do treino:
-        - Distância: {distancia_km:.2f} km
-        - Tempo: {treino.tempo_formatado}
-        - Pace: {treino.pace_formatado}
-        - Calorias: {treino.calorias}
+        - Distância: {distancia_km} km
+        - Tempo: {tempo_formatado}
+        - Pace: {pace_formatado}
+        - Calorias: {calorias_formatado}
 
         Requisitos obrigatórios:
         - Estilo esportivo moderno
@@ -137,7 +150,6 @@ class PostService:
         - Cada imagem deve ter composição diferente
         - Cada imagem deve ter frase motivacional diferente
         - Manter identidade visual consistente
-
         """
 
         return prompt_base + "\n\nEstilo adicional solicitado:\n" + prompt_usuario
