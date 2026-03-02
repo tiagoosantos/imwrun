@@ -191,14 +191,30 @@ def responder_com_ia(bot, message):
 # Handler de post
 # =========================
 
+import io
+from PIL import Image
+
 class GeminiClient:
+    IMAGE_MODELOS = [
+        "gemini-3.1-flash-image-preview",
+        "gemini-2.5-flash-image",
+    ]
 
     def __init__(self, api_key: str):
-        # 1. Ajuste da API Version: Modelos experimentais de imagem 
-        # costumam rodar na v1alpha ou v1beta. 
-        # A SDK atual gerencia isso melhor se usarmos o client padrão,
-        # mas vamos garantir o modelo correto no método.
         self.client = genai.Client(api_key=api_key)
+
+    @staticmethod
+    def _image_to_bytes(image_obj) -> bytes:
+        buffer = io.BytesIO()
+        image_obj.save(buffer, format="JPEG")
+        return buffer.getvalue()
+
+    @staticmethod
+    def _extrair_primeira_imagem(response) -> bytes | None:
+        for part in getattr(response, "parts", []) or []:
+            if getattr(part, "inline_data", None) is not None:
+                return GeminiClient._image_to_bytes(part.as_image())
+        return None
 
     def generate_images(
         self,
@@ -206,71 +222,44 @@ class GeminiClient:
         foto_path: str,
         n: int = 3
     ) -> list[bytes]:
+        imagens_bytes: list[bytes] = []
+        ultimo_erro = None
 
-        # 1️⃣ Ler a foto local
-        try:
-            with open(foto_path, "rb") as f:
-                foto_bytes = f.read()
-        except FileNotFoundError:
-            print(f"❌ Arquivo não encontrado: {foto_path}")
-            return []
+        with Image.open(foto_path) as imagem_base:
+            for i in range(n):
+                imagem_input = imagem_base.copy()
+                gerada = False
 
-        # ==========================================
-        # ETAPA 1: ANÁLISE (O Flash 2.5 já está estável)
-        # ==========================================
-        print("👁️ 1/2: Analisando referência...")
-        try:
-            imagem_part = types.Part.from_bytes(data=foto_bytes, mime_type="image/jpeg")
-            
-            resposta_visao = self.client.models.generate_content(
-                model="gemini-2.5-flash", 
-                contents=[imagem_part, "Descreva a pose, roupas e ambiente desta foto para um gerador de imagens."]
-            )
-            descricao = resposta_visao.text
-        except Exception as e:
-            print(f"❌ Erro na visão: {e}")
-            return []
+                for modelo in self.IMAGE_MODELOS:
+                    try:
+                        response = self.client.models.generate_content(
+                            model=modelo,
+                            contents=[prompt, imagem_input],
+                            config=types.GenerateContentConfig(
+                                image_config=types.ImageConfig(aspect_ratio="16:9")
+                            ),
+                        )
 
-        # ==========================================
-        # ETAPA 2: GERAÇÃO (Ajuste do nome do Modelo)
-        # ==========================================
-        
-        # DICA: Na sua lista, o modelo 'gemini-2.0-flash-exp-image-generation' 
-        # é o que está explicitamente marcado para 'image-generation' no Free Tier.
-        # O '2.5-flash-image' pode estar restrito a certas regiões ou versões.
-        
-        modelo_gerador = "gemini-2.0-flash-exp-image-generation" 
+                        image_bytes = self._extrair_primeira_imagem(response)
+                        if not image_bytes:
+                            raise RuntimeError(
+                                f"Modelo {modelo} nao retornou imagem (iteracao {i + 1})."
+                            )
 
-        prompt_final = f"{prompt}. Siga estas características: {descricao}"
+                        imagens_bytes.append(image_bytes)
+                        gerada = True
+                        break
+                    except Exception as e:
+                        ultimo_erro = e
+                        log.warning(
+                            "Falha ao gerar imagem com %s na iteracao %s, tentando fallback.",
+                            modelo,
+                            i + 1,
+                        )
 
-        print(f"🎨 2/2: Gerando imagens com {modelo_gerador}...")
-        try:
-            # Usamos o método nativo de geração de imagens do Gemini
-            response = self.client.models.generate_images(
-                model=modelo_gerador,
-                prompt=prompt_final,
-                config=types.GenerateImagesConfig(
-                    number_of_images=n,
-                    aspect_ratio="9:16",
-                    output_mime_type="image/jpeg"
-                )
-            )
+                if not gerada:
+                    raise RuntimeError(
+                        f"Nao foi possivel gerar a imagem {i + 1} com os modelos configurados."
+                    ) from ultimo_erro
 
-            return [img.image.image_bytes for img in response.generated_images]
-
-        except Exception as e:
-            # Se o 2.0 ainda falhar, tentamos o Nano Banana que é o fallback universal
-            if "404" in str(e) or "not found" in str(e).lower():
-                print("⚠️ Tentando modelo alternativo (Nano Banana)...")
-                try:
-                    response = self.client.models.generate_images(
-                        model="nano-banana-pro-preview",
-                        prompt=prompt_final,
-                        config=types.GenerateImagesConfig(number_of_images=n, aspect_ratio="9:16")
-                    )
-                    return [img.image.image_bytes for img in response.generated_images]
-                except Exception as e2:
-                    print(f"❌ Erro persistente: {e2}")
-            else:
-                print(f"❌ Erro na geração: {e}")
-            return []
+        return imagens_bytes
