@@ -263,3 +263,30 @@ class GeminiClient:
                     ) from ultimo_erro
 
         return imagens_bytes
+
+
+# =========================
+# geração de posts usando Gemini
+# =========================
+
+class GeminiService:
+
+    def gerar_imagem_estilizada(self, image_path, dados_treino):
+        prompt = self._montar_prompt_imagem(dados_treino)
+
+        response = self.client.models.generate_content(
+            model="gemini-2.0-flash-exp-image-generation",
+            contents=[
+                prompt,
+                types.Part.from_bytes(
+                    data=open(image_path, "rb").read(),
+                    mime_type="image/jpeg",
+                ),
+            ],
+        )
+
+        imagem_bytes = response.candidates[0].content.parts[0].inline_data.data
+
+        output_path = self._salvar_imagem_temp(imagem_bytes)
+
+        return output_path

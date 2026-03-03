@@ -12,6 +12,7 @@ from service.post_service import PostService
 from repository.post_repository import PostRepository
 
 from ia.post_generator import PostGenerator
+from ia.gemini_image_service import GeminiImageService
 
 from bot.handlers import register_handlers
 
@@ -34,6 +35,11 @@ def create_bot(log):
     post_generator = PostGenerator()
 
     # ==========================
+    # GEMINI IMAGE SERVICE (IA)
+    # ==========================
+    gemini_image_service = GeminiImageService()  # ✅ NOVO
+
+    # ==========================
     # REPOSITORIES
     # ==========================
     post_repository = PostRepository()
@@ -52,7 +58,8 @@ def create_bot(log):
     post_service = PostService(
         post_repository=post_repository,
         corrida_service=corrida_service,
-        post_generator=post_generator
+        post_generator=post_generator,
+        gemini_image_service=gemini_image_service
     )
 
     # ==========================

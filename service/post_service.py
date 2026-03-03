@@ -30,17 +30,17 @@ class PostService:
 
     LIMITE_DIARIO = 2
 
-    def __init__(self, post_repository, corrida_service, post_generator):
+    def __init__(self, post_repository, corrida_service, post_generator, gemini_image_service):
         self.post_repository = post_repository
         self.corrida_service = corrida_service
         self.post_generator = post_generator
+        self.gemini_image_service = gemini_image_service
 
     # ==========================
     # CONTROLE DE LIMITE
     # ==========================
 
     def pode_gerar_post(self, telegram_id):
-
         total = self.post_repository.contar_geracoes_hoje(telegram_id)
         return total < self.LIMITE_DIARIO
 
@@ -92,7 +92,7 @@ class PostService:
         else:
             pace_formatado = "N/A"
 
-        # 🔹 Dados para o PostGenerator
+        # 🔹 Dados para o PostGenerator e Gemini
         dados = {
             "distancia": distancia_km,
             "tempo": tempo_formatado,
@@ -100,13 +100,44 @@ class PostService:
             "calorias": calorias_formatado
         }
 
-        # 🔹 Gerar imagens locais
-        imagens_geradas = self.post_generator.gerar(
+        imagens_geradas = []
+
+        # =====================================
+        # 1️⃣ GERAR 2 IMAGENS LOCAIS
+        # =====================================
+        imagens_locais = self.post_generator.gerar(
             fotos=fotos,
-            dados=dados
+            dados=dados,
+            quantidade=2   # <-- importante ajustar post_generator
         )
 
-        # 🔹 Registrar no banco
+        imagens_geradas.extend(imagens_locais)
+
+        # =====================================
+        # 2️⃣ GERAR 1 IMAGEM VIA GEMINI
+        # =====================================
+        try:
+            imagem_gemini = self.gemini_image_service.gerar_imagem_estilizada(
+                image_path=fotos[0],  # usa primeira foto como base
+                dados_treino=dados,
+                prompt_usuario=None
+            )
+
+            imagens_geradas.append(imagem_gemini)
+
+        except Exception:
+            # fallback → gerar mais uma local
+            fallback = self.post_generator.gerar(
+                fotos=fotos,
+                dados=dados,
+                quantidade=1
+            )
+
+            imagens_geradas.extend(fallback)
+
+        # =====================================
+        # 3️⃣ REGISTRAR NO BANCO
+        # =====================================
         self.post_repository.registrar_geracao(telegram_id)
 
         return imagens_geradas

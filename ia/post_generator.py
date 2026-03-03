@@ -29,7 +29,7 @@ class PostGenerator:
     # MÉTODO PRINCIPAL
     # ==========================
 
-    def gerar(self, fotos: list[str], dados: dict) -> list[str]:
+    def gerar(self, fotos: list[str], dados: dict, quantidade: int = 3) -> list[str]:
         """
         fotos: lista de paths das fotos enviadas pelo usuário
         dados: dict com:
@@ -39,11 +39,16 @@ class PostGenerator:
                 "pace": "5:06/km",
                 "calorias": "420"
             }
+
+        quantidade: número de variações a gerar (default 3)
         """
 
         arquivos_salvos = []
 
-        for variacao in range(3):  # gerar 3 variações
+        # Garante que nunca passe de 3 variações existentes
+        quantidade = min(quantidade, 3)
+
+        for variacao in range(quantidade):
 
             output_path = TEMP_DIR / f"{uuid.uuid4()}.jpg"
 
@@ -75,7 +80,7 @@ class PostGenerator:
 
         draw = ImageDraw.Draw(base)
 
-        # 🔹 Fontes (ajuste se necessário)
+        # 🔹 Fontes
         try:
             font_titulo = ImageFont.truetype(
                 str(BASE_DIR / "assets/fonts/Montserrat-Bold.ttf"),
@@ -86,13 +91,13 @@ class PostGenerator:
 
         try:
             font_dados = ImageFont.truetype(
-                str(BASE_DIR / "assets" / "fonts" / "Montserrat-SemiBold.ttf"),
+                str(BASE_DIR / "assets/fonts/Montserrat-SemiBold.ttf"),
                 70
             )
         except:
             font_dados = ImageFont.load_default()
 
-        # 🔹 Posição do título varia
+        # 🔹 Variação de layout
         if variacao == 0:
             y_titulo = 250
         elif variacao == 1:
@@ -154,14 +159,12 @@ class PostGenerator:
     # ==========================
 
     def _aplicar_logo(self, base_image):
-        print("aplicando logo")
+
         if not LOGO_PATH.exists():
-            print(f"Logo não encontrado em: {LOGO_PATH}")
             return
 
         logo = Image.open(LOGO_PATH).convert("RGBA")
 
-        # 🔹 Garantir tamanho mínimo
         largura_base = base_image.width
         logo_ratio = 0.18
 
@@ -171,7 +174,6 @@ class PostGenerator:
 
         logo = logo.resize((nova_largura, nova_altura), Image.LANCZOS)
 
-        # 🔹 Criar sombra leve para destacar
         sombra = Image.new("RGBA", logo.size, (0, 0, 0, 120))
 
         margem = 40
@@ -179,8 +181,5 @@ class PostGenerator:
         pos_x = base_image.width - logo.width - margem
         pos_y = base_image.height - logo.height - margem
 
-        # 🔹 Aplicar sombra primeiro
         base_image.paste(sombra, (pos_x + 5, pos_y + 5), sombra)
-
-        # 🔹 Aplicar logo
         base_image.paste(logo, (pos_x, pos_y), logo)
