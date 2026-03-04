@@ -12,3 +12,4 @@ share/
 *.cfg
 logs/
 old/
+temp/
