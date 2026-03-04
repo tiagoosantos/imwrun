@@ -139,3 +139,6 @@ CREATE TABLE public.post_geracoes (
 
 CREATE INDEX idx_post_geracoes_telegram_data
 ON public.post_geracoes (telegram_id, data_geracao);
+
+CREATE INDEX idx_post_data_geracao
+ON post_geracoes (data_geracao);

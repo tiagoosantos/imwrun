@@ -1,4 +1,4 @@
-import os
+import os, time
 import uuid
 from pathlib import Path
 from bot.utils.bot_utils import formatar_tempo, formatar_distancia
@@ -28,7 +28,7 @@ class LimiteDiarioExcedido(Exception):
 
 class PostService:
 
-    LIMITE_DIARIO = 2
+    LIMITE_DIARIO = 20
 
     def __init__(self, post_repository, corrida_service, post_generator, gemini_image_service):
         self.post_repository = post_repository
@@ -116,8 +116,23 @@ class PostService:
         # =====================================
         # 2️⃣ GERAR 1 IMAGEM VIA GEMINI
         # =====================================
+        segundos = self.aguardar_limite_por_minuto()
+
+        if segundos > 0:
+
+            self.log.info(
+                f"Limite por minuto atingido. Aguardando {segundos:.0f} segundos",
+                extra={"telegram_id": telegram_id}
+            )
+
+            return {
+                "aguardar" : True,
+                "segundos": segundos
+            }
+
         try:
             imagem_gemini = self.gemini_image_service.gerar_imagem_estilizada(
+                telegram_id=telegram_id,
                 image_path=fotos[0],  # usa primeira foto como base
                 dados_treino=dados,
                 prompt_usuario=None
@@ -154,3 +169,18 @@ class PostService:
                     os.remove(path)
             except Exception:
                 pass
+
+    def aguardar_limite_por_minuto(self):
+
+        LIMITE_POR_MINUTO = 15
+
+        while True:
+
+            ultimos_60s = self.post_repository.contar_geracoes_ultimos_60s()
+            minuto_atual = self.post_repository.contar_geracoes_minuto_atual()
+
+            if ultimos_60s < LIMITE_POR_MINUTO and minuto_atual < LIMITE_POR_MINUTO:
+                return 0
+            
+            segundos_restantes = 60 - (time.time() % 60)
+            return segundos_restantes

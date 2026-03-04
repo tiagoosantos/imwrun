@@ -15,18 +15,19 @@ class BotWrapper:
         while True:
             try:
                 self.bot.infinity_polling(
-                    timeout=60,
-                    long_polling_timeout=30
+                    timeout=20,
+                    long_polling_timeout=50
                 )
 
             except Exception as e:
-                self.logger.error(
-                    "Erro crítico no bot",
-                    extra={
-                        "erro": str(e),
-                        "traceback": traceback.format_exc(),
-                    },
-                )
+                # self.logger.error(
+                #     "Erro crítico no bot",
+                #     extra={
+                #         "erro": str(e),
+                #         "traceback": traceback.format_exc(),
+                #     },
+                # )
 
-                self.logger.info("🔄 Reiniciando bot em 5 segundos...")
-                time.sleep(5)
+                # self.logger.info("🔄 Reiniciando bot em 5 segundos...")
+                # time.sleep(5)
+                self.logger.warning('Polling reiniciando...')

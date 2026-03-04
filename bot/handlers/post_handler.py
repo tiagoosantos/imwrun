@@ -3,8 +3,8 @@ from telebot.types import (
     InlineKeyboardButton,
     InputMediaPhoto
 )
-
-from bot.state.post_state import post_temp
+import threading
+from bot.state.post_state import post_temp, post_timers
 from bot.utils.bot_utils import formatar_tempo, formatar_distancia
 
 
@@ -147,10 +147,15 @@ def register_post(bot, services):
         data["treino_id"] = treino_id
         data["estado"] = POST_AGUARDANDO_FOTO
 
-        bot.edit_message_text(
-            "📸 Agora envie uma foto para gerar o post.",
+        # bot.edit_message_text(
+        #     "📸 Agora envie uma foto para gerar o post.",
+        #     telegram_id,
+        #     call.message.message_id
+        # )
+
+        bot.send_message(
             telegram_id,
-            call.message.message_id
+            "📸 Agora envie uma foto para gerar o post.",
         )
 
     # ------------------------------------------------------
@@ -207,6 +212,36 @@ def register_post(bot, services):
 
             post_temp.pop(telegram_id, None)
 
+    # ------------------------------------------------------
+    # Cancelar apenas fluxo de post
+    # ------------------------------------------------------
+
+    @bot.message_handler(commands=["cancelar"])
+    def cancelar_post(message):
+
+        telegram_id = message.chat.id
+        data = post_temp.get(telegram_id)
+
+        # 🔎 Só cancela se houver post em andamento
+        if not data:
+            bot.send_message(
+                telegram_id,
+                "ℹ️ Nenhum post em andamento para cancelar."
+            )
+            return
+
+        # 🔒 Cancelar timer se existir
+        timer = post_timers.pop(telegram_id, None)
+        if timer:
+            timer.cancel()
+
+        # 🔒 Limpar estado
+        post_temp.pop(telegram_id, None)
+
+        bot.send_message(
+            telegram_id,
+            "❌ Geração de post cancelada com sucesso."
+        )
 
 # ==========================================================
 # GERAÇÃO FINAL
@@ -224,15 +259,45 @@ def gerar_post_final(bot, telegram_id, services):
 
     correlation_id = data["correlation_id"]
 
-    bot.send_message(telegram_id, "⏳ Gerando seu post...")
-
     try:
 
-        imagens = post_service.gerar_post(
+        bot.send_message(telegram_id, "⏳ Gerando seu post...")
+
+        resultado = post_service.gerar_post(
             telegram_id=telegram_id,
             treino_id=data["treino_id"],
             fotos=[data["foto"]]
         )
+
+        # 🔒 Se atingiu limite por minuto
+        if isinstance(resultado, dict) and resultado.get("aguardar"):
+
+            segundos = resultado["segundos"]
+
+            bot.send_message(
+                telegram_id,
+                f"🚦 Muitas solicitações no momento.\n"
+                f"Aguardando {segundos} segundos para tentar novamente..."
+            )
+
+            # Cancelar timer antigo se existir
+            timer_existente = post_timers.get(telegram_id)
+            if timer_existente:
+                timer_existente.cancel()
+
+            # Criar novo timer
+            timer = threading.Timer(
+                segundos,
+                gerar_post_final,
+                args=(bot, telegram_id, services)
+            )
+
+            post_timers[telegram_id] = timer
+            timer.start()
+
+            return  # ⚠️ IMPORTANTE: não limpar estado aqui
+
+        imagens = resultado
 
         log.info(
             "Post gerado com sucesso",
@@ -253,7 +318,14 @@ def gerar_post_final(bot, telegram_id, services):
         for m in media:
             m.media.close()
 
-        post_service.limpar_arquivos(imagens)
+        # post_service.limpar_arquivos(imagens)
+
+        # 🔥 Limpeza final segura
+        post_temp.pop(telegram_id, None)
+
+        timer = post_timers.pop(telegram_id, None)
+        if timer:
+            timer.cancel()
 
     except Exception as e:
 
@@ -270,5 +342,9 @@ def gerar_post_final(bot, telegram_id, services):
             "❌ Ocorreu um erro ao gerar o post."
         )
 
-    finally:
         post_temp.pop(telegram_id, None)
+
+        timer = post_timers.pop(telegram_id, None)
+        if timer:
+            timer.cancel()
+    

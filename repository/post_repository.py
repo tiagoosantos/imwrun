@@ -55,3 +55,45 @@ class PostRepository:
 
         finally:
             conn.close()
+
+
+    def contar_geracoes_ultimos_60s(self):
+
+        conn = get_connection()
+
+        query = """
+            SELECT COUNT(*)
+            FROM post_geracoes
+            WHERE criado_em >= NOW() - INTERVAL '60 seconds'
+        """
+
+        try:
+            with conn.cursor() as cur:
+                cur.execute(query)
+                return cur.fetchone()[0]
+            
+            conn.commit()
+
+        finally:
+            conn.close()
+
+
+    def contar_geracoes_minuto_atual(self):
+
+        conn = get_connection()
+
+        query = """
+            SELECT COUNT(*)
+            FROM post_geracoes
+            WHERE date_trunc('minute', criado_em)
+                = date_trunc('minute', NOW())
+        """
+        try:
+            with conn.cursor() as cur:
+                cur.execute(query)
+                return cur.fetchone()[0]
+            
+            conn.commit()
+            
+        finally:
+            conn.close()
