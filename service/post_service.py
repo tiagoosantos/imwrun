@@ -161,12 +161,27 @@ class PostService:
     # LIMPAR ARQUIVOS TEMPORÁRIOS
     # ==========================
 
+    # def limpar_arquivos(self, arquivos):
+
+    #     for path in arquivos:
+    #         try:
+    #             if os.path.exists(path):
+    #                 os.remove(path)
+    #         except Exception:
+    #             pass
+
+    TEMP_DIR = BASE_DIR / "temp" / "posts"
+
     def limpar_arquivos(self, arquivos):
 
         for path in arquivos:
             try:
-                if os.path.exists(path):
-                    os.remove(path)
+                p = Path(path)
+
+                if TEMP_DIR in p.parents:
+                    if p.exists():
+                        p.unlink()
+
             except Exception:
                 pass
 

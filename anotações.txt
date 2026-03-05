@@ -67,3 +67,13 @@ verificar:
 -------------
 
 criei a rotina de gerar os posts localmente, mas agora consegui habilitar o image-to-image via gemini e agora quero incorporar no projeto
+
+-------------
+-- 02/02/2026
+-------------
+
+- image-to-image está funcionando no projeto e já me gerou o custo de 3,00 em dois dias
+
+MELHORIAS:
+- a primeira e a segunda ainda estão bem simples, melhorar as postagens e transformar a segunda em cartoon ou anime
+- possivelmente o resultado da ia pode ser o padrão da primeira imagem e deixar a ia pra produzir coisas melhores

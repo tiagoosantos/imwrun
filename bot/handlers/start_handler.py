@@ -20,7 +20,9 @@ def register_start(bot, services):
         texto = (
             "🏃 *Bem-vindo ao IMW Runner!*\n\n"
             "Aqui você registra treinos e acompanha rankings de corrida.\n\n"
-            "*Escolha uma ação:*"
+            "Setiver uma foto de compartilhamento do seu treino, pode me enviar que eu registro o seu treino através dos dados que tiver na foto.\n\n"
+            "*Você também pode me perguntar o que quiser sobre corrida ou*\n"
+            "*escolha uma das opções:*"
         )
 
         bot.send_message(
