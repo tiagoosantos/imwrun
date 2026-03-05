@@ -27,6 +27,7 @@ class GeminiImageService:
         self.client = genai.Client(api_key=GEMINI)
 
         self.model = "gemini-3.1-flash-image-preview"
+        # self.model = "gemini-2.5-flash-image"
 
         self.output_dir = "temp/gemini"
         os.makedirs(self.output_dir, exist_ok=True)

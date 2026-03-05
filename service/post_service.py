@@ -13,6 +13,7 @@ TEMP_DIR = BASE_DIR / "temp" / "posts"
 
 TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
+GEMINI_ATIVO = False
 
 # ==========================
 # EXCEPTION CUSTOM
@@ -116,46 +117,50 @@ class PostService:
         # =====================================
         # 2️⃣ GERAR 1 IMAGEM VIA GEMINI
         # =====================================
-        segundos = self.aguardar_limite_por_minuto()
 
-        if segundos > 0:
+        if GEMINI_ATIVO:
+            segundos = self.aguardar_limite_por_minuto()
 
-            self.log.info(
-                f"Limite por minuto atingido. Aguardando {segundos:.0f} segundos",
-                extra={"telegram_id": telegram_id}
-            )
+            if segundos > 0:
 
-            return {
-                "aguardar" : True,
-                "segundos": segundos
-            }
+                self.log.info(
+                    f"Limite por minuto atingido. Aguardando {segundos:.0f} segundos",
+                    extra={"telegram_id": telegram_id}
+                )
 
-        try:
-            imagem_gemini = self.gemini_image_service.gerar_imagem_estilizada(
-                telegram_id=telegram_id,
-                image_path=fotos[0],  # usa primeira foto como base
-                dados_treino=dados,
-                prompt_usuario=None
-            )
+                return {
+                    "aguardar" : True,
+                    "segundos": segundos
+                }
 
-            imagens_geradas.append(imagem_gemini)
+            try:
+                imagem_gemini = self.gemini_image_service.gerar_imagem_estilizada(
+                    telegram_id=telegram_id,
+                    image_path=fotos[0],  # usa primeira foto como base
+                    dados_treino=dados,
+                    prompt_usuario=None
+                )
 
-        except Exception:
-            # fallback → gerar mais uma local
-            fallback = self.post_generator.gerar(
-                fotos=fotos,
-                dados=dados,
-                quantidade=1
-            )
+                imagens_geradas.append(imagem_gemini)
 
-            imagens_geradas.extend(fallback)
+            except Exception:
+                # fallback → gerar mais uma local
+                fallback = self.post_generator.gerar(
+                    fotos=fotos,
+                    dados=dados,
+                    quantidade=1
+                )
 
-        # =====================================
-        # 3️⃣ REGISTRAR NO BANCO
-        # =====================================
-        self.post_repository.registrar_geracao(telegram_id)
+                imagens_geradas.extend(fallback)
 
-        return imagens_geradas
+            # =====================================
+            # 3️⃣ REGISTRAR NO BANCO
+            # =====================================
+            self.post_repository.registrar_geracao(telegram_id)
+
+            return imagens_geradas
+        else:
+            return imagens_geradas
 
     # ==========================
     # LIMPAR ARQUIVOS TEMPORÁRIOS

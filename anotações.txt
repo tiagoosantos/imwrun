@@ -77,3 +77,12 @@ criei a rotina de gerar os posts localmente, mas agora consegui habilitar o imag
 MELHORIAS:
 - a primeira e a segunda ainda estão bem simples, melhorar as postagens e transformar a segunda em cartoon ou anime
 - possivelmente o resultado da ia pode ser o padrão da primeira imagem e deixar a ia pra produzir coisas melhores
+
+-------------
+-- 05/02/2026
+-------------
+
+
+MELHORIAS ESTRUTURAIS:
+- gemini_image_service separar em gemini_image e service/gemini_image_service
+- mover post_compositor e post_generator e os teste_de_imagem da pasta ia para outra pasta
