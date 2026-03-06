@@ -2,8 +2,9 @@ import uuid
 from pathlib import Path
 from PIL import Image, ImageEnhance
 
-from image.styles import anime, cartoon, sketch, comic, comic_cv, manga_cv, sketch_cv
+from image.styles import anime, cartoon, sketch, comic, comic_cv, manga_cv, sketch_cv, cartoon_cv, anime_gan
 from image.layouts import layout_glass, layout_classic
+from image.styles import anime_gan
 from image.utils.resize import resize_cover
 from image.utils.logo import aplicar_logo_central, aplicar_logo_canto
 
@@ -42,11 +43,11 @@ class PostGenerator:
             # "anime": anime.aplicar,
             # "sketch": sketch.aplicar,
             # "comic": comic.aplicar,
-            # "cartoon": cartoon.aplicar,
+            "cartoon_cv": cartoon_cv.aplicar,
             "comic_cv": comic_cv.aplicar,
             "manga_cv": manga_cv.aplicar,
-            "sketch_cv": sketch_cv.aplicar
-
+            "sketch_cv": sketch_cv.aplicar,
+            "anime_gan": anime_gan.aplicar
         }
 
         for nome, func in estilos.items():
