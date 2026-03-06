@@ -4,8 +4,16 @@ from telebot.types import (
     InputMediaPhoto
 )
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from bot.state.post_state import post_temp, post_timers
 from bot.utils.bot_utils import formatar_tempo, formatar_distancia
+
+
+# ==========================================================
+# EXECUTOR PARA BACKGROUND
+# ==========================================================
+
+executor = ThreadPoolExecutor(max_workers=3)
 
 
 # ==========================
@@ -174,6 +182,13 @@ def register_post(bot, services):
         if not data:
             return
 
+        if data.get("gerando"):
+            bot.send_message(
+                telegram_id,
+                "⏳ Já estou gerando um post para você, aguarde."
+            )
+            return
+
         correlation_id = data["correlation_id"]
 
         try:
@@ -184,6 +199,7 @@ def register_post(bot, services):
             path = post_service.salvar_foto_temporaria(downloaded_file)
 
             data["foto"] = path
+            data["gerando"] = True
 
             log.info(
                 "Foto recebida para gerar post",
@@ -193,7 +209,16 @@ def register_post(bot, services):
                 }
             )
 
-            gerar_post_final(bot, telegram_id, services)
+            bot.send_message(telegram_id, "⏳ Gerando seu post...")
+            bot.send_chat_action(telegram_id, "upload_photo")
+
+            # 🔥 EXECUTA EM BACKGROUND
+            executor.submit(
+                gerar_post_final,
+                bot,
+                telegram_id,
+                services
+            )
 
         except Exception as e:
 
@@ -211,7 +236,7 @@ def register_post(bot, services):
             )
 
             post_temp.pop(telegram_id, None)
-
+            
     # ------------------------------------------------------
     # Cancelar apenas fluxo de post
     # ------------------------------------------------------

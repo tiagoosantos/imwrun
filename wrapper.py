@@ -15,8 +15,8 @@ class BotWrapper:
         while True:
             try:
                 self.bot.infinity_polling(
-                    timeout=20,
-                    long_polling_timeout=50
+                    timeout=60,
+                    long_polling_timeout=60
                 )
 
             except Exception as e:
