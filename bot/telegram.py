@@ -11,7 +11,7 @@ from service.post_service import PostService
 
 from repository.post_repository import PostRepository
 
-from ia.post_generator import PostGenerator
+from image.post_generator import PostGenerator
 from ia.gemini_image_service import GeminiImageService
 
 from bot.handlers import register_handlers

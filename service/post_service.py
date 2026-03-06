@@ -9,6 +9,8 @@ from bot.utils.bot_utils import formatar_tempo, formatar_distancia
 # ==========================
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+print(f"BASE_DIR: {BASE_DIR}")
+
 TEMP_DIR = BASE_DIR / "temp" / "posts"
 
 TEMP_DIR.mkdir(parents=True, exist_ok=True)
@@ -68,7 +70,6 @@ class PostService:
         if not self.pode_gerar_post(telegram_id):
             raise LimiteDiarioExcedido()
 
-        # 🔹 Buscar treino
         treino = self.corrida_service.buscar_por_id(
             telegram_id=telegram_id,
             treino_id=treino_id
@@ -77,13 +78,11 @@ class PostService:
         if not treino:
             raise ValueError("Treino não encontrado.")
 
-        # treino = (id, distancia_metros, tempo_segundos, calorias, pace_segundos)
         distancia_metros = treino[1]
         tempo_segundos = treino[2]
         calorias = treino[3]
         pace_segundos = treino[4]
 
-        # 🔹 Formatação usando suas utils
         distancia_km = formatar_distancia(distancia_metros)
         tempo_formatado = formatar_tempo(tempo_segundos)
         calorias_formatado = str(calorias) if calorias else "0"
@@ -93,7 +92,6 @@ class PostService:
         else:
             pace_formatado = "N/A"
 
-        # 🔹 Dados para o PostGenerator e Gemini
         dados = {
             "distancia": distancia_km,
             "tempo": tempo_formatado,
@@ -104,39 +102,36 @@ class PostService:
         imagens_geradas = []
 
         # =====================================
-        # 1️⃣ GERAR 2 IMAGENS LOCAIS
+        # 1️⃣ GERAR IMAGENS LOCAIS
         # =====================================
+
         imagens_locais = self.post_generator.gerar(
             fotos=fotos,
-            dados=dados,
-            quantidade=2   # <-- importante ajustar post_generator
+            dados=dados
         )
 
         imagens_geradas.extend(imagens_locais)
 
         # =====================================
-        # 2️⃣ GERAR 1 IMAGEM VIA GEMINI
+        # 2️⃣ GERAR IMAGEM IA
         # =====================================
 
         if GEMINI_ATIVO:
+
             segundos = self.aguardar_limite_por_minuto()
 
             if segundos > 0:
 
-                self.log.info(
-                    f"Limite por minuto atingido. Aguardando {segundos:.0f} segundos",
-                    extra={"telegram_id": telegram_id}
-                )
-
                 return {
-                    "aguardar" : True,
+                    "aguardar": True,
                     "segundos": segundos
                 }
 
             try:
+
                 imagem_gemini = self.gemini_image_service.gerar_imagem_estilizada(
                     telegram_id=telegram_id,
-                    image_path=fotos[0],  # usa primeira foto como base
+                    image_path=fotos[0],
                     dados_treino=dados,
                     prompt_usuario=None
                 )
@@ -144,24 +139,17 @@ class PostService:
                 imagens_geradas.append(imagem_gemini)
 
             except Exception:
-                # fallback → gerar mais uma local
-                fallback = self.post_generator.gerar(
-                    fotos=fotos,
-                    dados=dados,
-                    quantidade=1
-                )
 
-                imagens_geradas.extend(fallback)
+                # fallback → repetir última imagem local
+                imagens_geradas.append(imagens_locais[-1])
 
-            # =====================================
-            # 3️⃣ REGISTRAR NO BANCO
-            # =====================================
-            self.post_repository.registrar_geracao(telegram_id)
+        # =====================================
+        # 3️⃣ REGISTRAR NO BANCO
+        # =====================================
 
-            return imagens_geradas
-        else:
-            return imagens_geradas
+        self.post_repository.registrar_geracao(telegram_id)
 
+        return imagens_geradas
     # ==========================
     # LIMPAR ARQUIVOS TEMPORÁRIOS
     # ==========================

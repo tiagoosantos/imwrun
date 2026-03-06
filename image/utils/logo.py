@@ -1,7 +1,7 @@
 from pathlib import Path
 from PIL import Image
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 TEMP_DIR = BASE_DIR / "temp" / "posts"
 LOGO_PATH = BASE_DIR / "assets" / "logos" / "imwrun_logo.jpeg"
 
@@ -9,7 +9,7 @@ LOGO_PATH = BASE_DIR / "assets" / "logos" / "imwrun_logo.jpeg"
 # LOGO CENTRAL
 # ==========================
 
-def _aplicar_logo_central(self, img):
+def aplicar_logo_central(img):
 
     if not LOGO_PATH.exists():
         return
@@ -32,7 +32,7 @@ def _aplicar_logo_central(self, img):
 # LOGO CANTO
 # ==========================
 
-def _aplicar_logo_canto(self, img):
+def aplicar_logo_canto(img):
 
     if not LOGO_PATH.exists():
         return

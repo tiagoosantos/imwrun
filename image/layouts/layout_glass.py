@@ -1,9 +1,10 @@
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+print(f"BASE_DIR: {BASE_DIR}")
 
-def _desenhar_box_dados_glass(self, img, dados):
+def aplicar_layout_glass(img, dados):
 
     largura, altura = img.size
 
@@ -34,11 +35,11 @@ def _desenhar_box_dados_glass(self, img, dados):
 
     try:
         font_label = ImageFont.truetype(
-            str(BASE_DIR / "assets/fonts/Montserrat-Bold.ttf"), 26
+            str(BASE_DIR / "assets"/"fonts"/"Montserrat-Bold.ttf"), 26
         )
 
         font_value = ImageFont.truetype(
-            str(BASE_DIR / "assets/fonts/Montserrat-SemiBold.ttf"), 56
+            str(BASE_DIR / "assets"/"fonts"/"Montserrat-SemiBold.ttf"), 56
         )
 
     except:

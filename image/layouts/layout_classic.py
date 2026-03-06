@@ -1,17 +1,15 @@
 from pathlib import Path
 from PIL import ImageDraw, ImageFont
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-def _desenhar_box_antigo(self, img, dados):
+def aplicar_layout_classic(img, dados):
 
     draw = ImageDraw.Draw(img)
 
     try:
         font = ImageFont.truetype(
-            str(BASE_DIR / "assets/fonts/Montserrat-SemiBold.ttf"),
-            52
-        )
+            str(BASE_DIR / "assets"/"fonts"/"Montserrat-SemiBold.ttf"), 52)
     except:
         font = ImageFont.load_default()
 

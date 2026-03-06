@@ -1,6 +1,6 @@
 from PIL import Image
 
-def _resize_cover(self, image, target_w, target_h):
+def resize_cover(image, target_w, target_h):
 
     ratio = max(target_w / image.width, target_h / image.height)
 
