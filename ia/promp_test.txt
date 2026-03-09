@@ -1,0 +1,92 @@
+PROMPT1 = "
+Transforme esta foto de corrida em uma versão esportiva premium.
+
+Estilo:
+- Visual cinematográfico
+- Cores vibrantes
+- Alto contraste
+- Atmosfera dinâmica
+- Sensação de performance
+
+Destaque os dados do treino na imagem usando o modelo strava:
+
+- Distância: 3,08 km
+- Tempo: 37:00
+- Pace: 12:00/km
+
+Mantenha o atleta realista.
+Não escreva a palavra 'None' na imagem.
+"""
+
+prompt = f"""
+A primeira imagem é a foto do corredor.
+A segunda imagem é um logo oficial chamado "logo".
+
+Estilo:
+- Visual cinematográfico
+- Cores vibrantes
+- Atmosfera dinâmica
+- Sensação de performance
+
+Destaque o treino na imagem usando o modelo strava apenas com os dados disponíveis:
+Distância: {distancia} km
+Tempo: {tempo}
+Pace: {pace}
+
+Com base nas informações da cena de fundo, crie uma composição clean e visualmente impressionante que integre o logo de forma harmoniosa, sem sobrepor ou distorcer a imagem do corredor, por fim aplique um desfoque de 30%.
+Mantenha o atleta realista e não altere sua aparência ou o corpo.
+Não escreva a palavra 'None' na imagem.
+
+Use a imagem chamada "logo" como logotipo oficial.
+Posicione o logo próximo a um dos cantos da imagem
+(canto inferior direito ou superior direito),
+mantendo proporção e sem distorcer.
+"
+------------------------------------------------------------------------------------------------------------------------------------
+PROMPT2 = "
+Use a foto fornecida da corredora como o ÚNICO sujeito humano.
+Mantenha identidade, rosto, tom de pele, cabelo, roupa, tênis, proporções corporais e pose EXATAMENTE iguais.
+NÃO embeleze nem altere a corredora.
+Combine a foto da corredora com o print da atividade do Strava fornecido em uma única composição cinematográfica.
+Leia todos os dados visíveis da atividade diretamente do print do Strava e reproduza os valores EXATAMENTE como mostrados.
+Extraia o mapa da rota do Strava e projete-o no chão em perspectiva 3D:
+A rota deve formar o principal caminho no chão, abaixo e à frente da corredora.
+A mesma rota também deve se estender ao redor da corredora no chão, emoldurando sutilmente a atleta.
+A rota deve brilhar em laranja Strava, parecer fisicamente incorporada ao asfalto, com profundidade realista, vazamento de luz e perspectiva.
+Nunca flutuante ou holográfica.
+Posicione a corredora naturalmente sobre esse chão do Strava, com escala correta, sombras realistas e contato real dos pés com o solo.
+Integre as estatísticas do Strava no chão, usando tipografia branca limpa, respeitando a hierarquia visual do Strava.
+Garanta que todos os dados estejam totalmente visíveis, bem espaçados e NÃO cortados.
+Adicione o logo do STRAVA próximo à parte inferior, totalmente visível. Ao lado coloque o logo do grupo IMW Run que está no arquivo que logo no nome.
+Ambiente: dramático, cinematográfico, céu escuro e nublado, profundidade realista, iluminação de alto contraste.
+Câmera: perspectiva baixa a média, enfatizando a rota brilhante.
+Estilo: fotografia esportiva ultra-realista, cinematográfica, premium, imagem estática. Tamanho:  9:16 padrão Reels e TikTok
+"
+------------------------------------------------------------------------------------------------------------------------------------
+
+PROMPT3 = "
+Use a foto do corredor fornecida como o ÚNICO sujeito humano da imagem.
+Mantenha identidade, rosto, tom de pele, cabelo, roupa, tênis, proporções corporais e pose EXATAMENTE iguais à foto original.
+Não embeleze, não altere e não modifique o corredor de nenhuma forma.
+
+Combine a foto do corredor com o print da atividade do Strava em uma única composição cinematográfica.
+
+Leia todos os dados visíveis do print do Strava e reproduza os valores EXATAMENTE como aparecem, sem alterar números, textos ou unidades.
+
+Os dados devem aparecer claramente visíveis na cena, escritos no chão ou integrados ao ambiente, conforme a imagem do Strava 
+
+Extraia o mapa da rota do Strava e projete essa rota no chão em perspectiva 3D, seguindo estas regras:
+	•	A rota deve formar o caminho principal no asfalto, logo à frente e abaixo do corredor
+	•	A mesma rota deve contornar parcialmente o corredor no chão, enquadrando o atleta de forma sutil
+	•	A rota deve brilhar na cor laranja do Strava
+	•	A rota deve parecer fisicamente embutida no asfalto, com profundidade realista, reflexo de luz, sombra e perspectiva correta
+	•	Nunca flutuante, nunca holográfica
+
+A cena deve ser extremamente cinematográfica, com:
+	•	Iluminação dramática (pôr do sol ou amanhecer)
+	•	Asfalto molhado ou reflexivo
+	•	Sensação de movimento, velocidade e intensidade
+	•	Atmosfera épica, realista e esportiva
+
+O corredor deve ser o foco absoluto da imagem, com profundidade de campo realista e composição digna de pôster esportivo profissional.
+"

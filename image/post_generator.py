@@ -43,10 +43,10 @@ class PostGenerator:
             # "anime": anime.aplicar,
             # "sketch": sketch.aplicar,
             # "comic": comic.aplicar,
-            "cartoon_cv": cartoon_cv.aplicar,
-            "comic_cv": comic_cv.aplicar,
-            "manga_cv": manga_cv.aplicar,
-            "sketch_cv": sketch_cv.aplicar,
+            # "cartoon_cv": cartoon_cv.aplicar,
+            # "comic_cv": comic_cv.aplicar,
+            # "manga_cv": manga_cv.aplicar,
+            # "sketch_cv": sketch_cv.aplicar,
             "anime_gan": anime_gan.aplicar
         }
 
