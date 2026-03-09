@@ -47,10 +47,10 @@ class PostGenerator:
             # "comic_cv": comic_cv.aplicar,
             # "manga_cv": manga_cv.aplicar,
             # "sketch_cv": sketch_cv.aplicar,
-            "anime_gan": anime_gan.aplicar
+            # "anime_gan": anime_gan.aplicar
         }
-
-        for nome, func in estilos.items():
+        
+        for nome, func in estilos.items() or []:
 
             path = TEMP_DIR / f"{uuid.uuid4()}_{nome}.jpg"
 
@@ -77,6 +77,8 @@ class PostGenerator:
         base = cor.enhance(1.2)
 
         layout_glass.aplicar_layout_glass(base, dados)
+        # layout_glass.aplicar_layout_glass_acima_logo(base, dados)
+        # layout_glass.aplicar_layout_glass_footer(base, dados)
 
         aplicar_logo_central(base)
 

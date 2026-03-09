@@ -286,7 +286,7 @@ def gerar_post_final(bot, telegram_id, services):
 
     try:
 
-        bot.send_message(telegram_id, "⏳ Gerando seu post...")
+        bot.send_message(telegram_id, "👍 Tá pronto o seu post...")
 
         resultado = post_service.gerar_post(
             telegram_id=telegram_id,
