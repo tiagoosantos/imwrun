@@ -5,10 +5,11 @@ from PIL import Image
 from google import genai
 from google.genai import types
 from config.settings import GEMINI
-
 from datetime import datetime
 from pathlib import Path
 from datetime import datetime
+
+import gemini_prompt as gp
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 LOGO_PATH = BASE_DIR / "assets" / "logos" / "imwrun_logo.jpeg"
@@ -80,59 +81,23 @@ class GeminiImageService:
         distancia = dados_treino.get("distancia")
         tempo = dados_treino.get("tempo")
         pace = dados_treino.get("pace")
-        calorias = dados_treino.get("calorias")
 
-        # Estilize esta foto de corrida com arte digital vibrante e moderna.
+        principal = gp.PROMPT4.format(
+            distancia=distancia,
+            tempo=tempo,
+            pace=pace
+        )
 
-        prompt1 = f"""
-        Transforme esta foto de corrida em uma versão esportiva premium.
-
-        Estilo:
-        - Visual cinematográfico
-        - Cores vibrantes
-        - Alto contraste
-        - Atmosfera dinâmica
-        - Sensação de performance
-
-        Destaque os dados do treino na imagem usando o modelo strava:
-
-        - Distância: {distancia} km
-        - Tempo: {tempo}
-        - Pace: {pace}
-        - Calorias: {calorias} kcal
-
-        Mantenha o atleta realista.
-        Não escreva a palavra 'None' na imagem.
-        """
-
-        prompt = f"""
-        A primeira imagem é a foto do corredor.
-        A segunda imagem é um logo oficial chamado "logo".
-
-        Estilo:
-        - Visual cinematográfico
-        - Cores vibrantes
-        - Atmosfera dinâmica
-        - Sensação de performance
-
-        Destaque o treino na imagem usando o modelo strava apenas com os dados disponíveis:
-        Distância: {distancia} km
-        Tempo: {tempo}
-        Pace: {pace}
-
-        Com base nas informações da cena de fundo, crie uma composição clean e visualmente impressionante que integre o logo de forma harmoniosa, sem sobrepor ou distorcer a imagem do corredor, por fim aplique um desfoque de 30%.
-        Mantenha o atleta realista e não altere sua aparência ou o corpo.
-        Não escreva a palavra 'None' na imagem.
-
-        Use a imagem chamada "logo" como logotipo oficial.
-        Posicione o logo próximo a um dos cantos da imagem
-        (canto inferior direito ou superior direito),
-        mantendo proporção e sem distorcer.
-        """ 
-        #Aplique um olhar um pouco futurístico e um desfoque artístico no fundo para destacar o corredor.       
+        alternativo = gp.prompt2.format(
+            distancia=distancia,
+            tempo=tempo,
+            pace=pace
+        )
 
         if prompt_usuario:
-            prompt += f"\nEstilo adicional solicitado: {prompt_usuario}"
+            prompt = alternativo+f"\nEstilo adicional solicitado: {prompt_usuario}"
+        else:
+            prompt = principal
 
         return prompt.strip()
 

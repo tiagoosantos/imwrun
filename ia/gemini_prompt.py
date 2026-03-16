@@ -1,4 +1,4 @@
-PROMPT1 = "
+prompt2 = f"""
 Transforme esta foto de corrida em uma versão esportiva premium.
 
 Estilo:
@@ -10,15 +10,15 @@ Estilo:
 
 Destaque os dados do treino na imagem usando o modelo strava:
 
-- Distância: 3,08 km
-- Tempo: 37:00
-- Pace: 12:00/km
+- Distância: {distancia} km
+- Tempo: {tempo}
+- Pace: {pace}
 
 Mantenha o atleta realista.
 Não escreva a palavra 'None' na imagem.
 """
 
-prompt = f"""
+prompt1 = f"""
 A primeira imagem é a foto do corredor.
 A segunda imagem é um logo oficial chamado "logo".
 
@@ -41,58 +41,10 @@ Use a imagem chamada "logo" como logotipo oficial.
 Posicione o logo próximo a um dos cantos da imagem
 (canto inferior direito ou superior direito),
 mantendo proporção e sem distorcer.
-"
-------------------------------------------------------------------------------------------------------------------------------------
-PROMPT2 = "
-Use a foto fornecida da corredora como o ÚNICO sujeito humano.
-Mantenha identidade, rosto, tom de pele, cabelo, roupa, tênis, proporções corporais e pose EXATAMENTE iguais.
-NÃO embeleze nem altere a corredora.
-Combine a foto da corredora com o print da atividade do Strava fornecido em uma única composição cinematográfica.
-Leia todos os dados visíveis da atividade diretamente do print do Strava e reproduza os valores EXATAMENTE como mostrados.
-Extraia o mapa da rota do Strava e projete-o no chão em perspectiva 3D:
-A rota deve formar o principal caminho no chão, abaixo e à frente da corredora.
-A mesma rota também deve se estender ao redor da corredora no chão, emoldurando sutilmente a atleta.
-A rota deve brilhar em laranja Strava, parecer fisicamente incorporada ao asfalto, com profundidade realista, vazamento de luz e perspectiva.
-Nunca flutuante ou holográfica.
-Posicione a corredora naturalmente sobre esse chão do Strava, com escala correta, sombras realistas e contato real dos pés com o solo.
-Integre as estatísticas do Strava no chão, usando tipografia branca limpa, respeitando a hierarquia visual do Strava.
-Garanta que todos os dados estejam totalmente visíveis, bem espaçados e NÃO cortados.
-Adicione o logo do STRAVA próximo à parte inferior, totalmente visível. Ao lado coloque o logo do grupo IMW Run que está no arquivo que logo no nome.
-Ambiente: dramático, cinematográfico, céu escuro e nublado, profundidade realista, iluminação de alto contraste.
-Câmera: perspectiva baixa a média, enfatizando a rota brilhante.
-Estilo: fotografia esportiva ultra-realista, cinematográfica, premium, imagem estática. Tamanho:  9:16 padrão Reels e TikTok
-"
-------------------------------------------------------------------------------------------------------------------------------------
+""" 
 
-PROMPT3 = "
-Use a foto do corredor fornecida como o ÚNICO sujeito humano da imagem.
-Mantenha identidade, rosto, tom de pele, cabelo, roupa, tênis, proporções corporais e pose EXATAMENTE iguais à foto original.
-Não embeleze, não altere e não modifique o corredor de nenhuma forma.
-
-Combine a foto do corredor com o print da atividade do Strava em uma única composição cinematográfica.
-
-Leia todos os dados visíveis do print do Strava e reproduza os valores EXATAMENTE como aparecem, sem alterar números, textos ou unidades.
-
-Os dados devem aparecer claramente visíveis na cena, escritos no chão ou integrados ao ambiente, conforme a imagem do Strava 
-
-Extraia o mapa da rota do Strava e projete essa rota no chão em perspectiva 3D, seguindo estas regras:
-	•	A rota deve formar o caminho principal no asfalto, logo à frente e abaixo do corredor
-	•	A mesma rota deve contornar parcialmente o corredor no chão, enquadrando o atleta de forma sutil
-	•	A rota deve brilhar na cor laranja do Strava
-	•	A rota deve parecer fisicamente embutida no asfalto, com profundidade realista, reflexo de luz, sombra e perspectiva correta
-	•	Nunca flutuante, nunca holográfica
-
-A cena deve ser extremamente cinematográfica, com:
-	•	Iluminação dramática (pôr do sol ou amanhecer)
-	•	Asfalto molhado ou reflexivo
-	•	Sensação de movimento, velocidade e intensidade
-	•	Atmosfera épica, realista e esportiva
-
-O corredor deve ser o foco absoluto da imagem, com profundidade de campo realista e composição digna de pôster esportivo profissional.
-"
-------------------------------------------------------------------------------------------------------------------------------------
-** PROMPT ARTISTICO
-PROMPT4 = "
+# PROMPT ARTISTICO
+PROMPT4 = f"""
 Ação: Criar uma postagem de rede social vertical (9:16) com um estilo "Artístico e de Design Expresso", elevando a foto original para uma composição de arte digital fluida.
 
 Composição Visual:
@@ -103,19 +55,19 @@ Iluminação e Atmosfera: As luzes ambientais originais são transformadas em fe
 Integração de Design: Textura na Vestimenta: Sutilmente, sobreponha padrões topográficos e uma malha de dados translúcida sobre a camiseta/vestuário do corredor.
 Formas de Dados Flutuantes: No canto inferior, apresente os dados contidos dentro de formas orgânicas, poligonais e translúcidas (idênticas às de image_8.png) que flutuam na cena. Cada forma tem uma textura e ícone integrados:
 
-[Painel 1] Ícone de Cronômetro + TEMPO: [TIME_VAR]
-[Painel 2] Ícone de Pin de Mapa + DISTÂNCIA: [DISTANCE_VAR]
-[Painel 3] Ícone de Tênis + PACE: [PACE_VAR]
+[Painel 1] Ícone de Cronômetro + TEMPO: [{tempo}]
+[Painel 2] Ícone de Pin de Mapa + DISTÂNCIA: [{distancia}]
+[Painel 3] Ícone de Tênis + PACE: [{pace}]
 
 Elementos de Marca e Texto:
 Canto Superior Esquerdo: "[NOME_DA_MARCA/CLUBE] LOGO" (menor e integrado de forma mais sutil à textura do mural abstrato).
 Canto Superior Direito: "[NOME_DA_SESSÃO/CORRIDA]" (em fonte moderna, integrado sutilmente à luz projetada).
 
 Acabamento: O suor é realçado com micro-glitter, e o concreto/solo do local tem linhas gráficas de GPS integradas. O resultado deve parecer uma fusão de fotografia e design de arte.
-"
-------------------------------------------------------------------------------------------------------------------------------------
-** PROMPT CARTOON
-PROMPT5 = "
+"""
+
+# PROMPT CARTOON
+PROMPT5 = f"""
 Geração de imagem vertical para redes sociais (como Reels/TikTok) em estilo anime de alta qualidade.
 
 Sujeito Principal: Uma representação de anime detalhada e dinâmica de um corredor ou corredora genérico(a) (etnia e gênero variáveis, mas com aparência atlética e em forma), em pleno movimento de corrida com passada média e braços bombeando. O corredor veste equipamento de corrida de performance de cores vivas e um relógio de esporte moderno. Sua expressão é focada e determinada.
@@ -130,13 +82,13 @@ Canto superior direito: O texto "NIGHT SESSION DONE" em fonte moderna e limpa (m
 
 Canto inferior: Uma caixa preta translúcida flutuante com ícones e dados de corrida variáveis (com ícones: cronômetro, mapa, tênis):
 
-Tempo (com cronômetro): [00:48:32 ou dados variáveis]
+Tempo (com cronômetro): {tempo}
 
-Distância (com mapa): [8.2 km ou dados variáveis]
+Distância (com mapa): {distancia}
 
-Pace (com tênis): [5:55 /km ou dados variáveis]
+Pace (com tênis): {pace}
 
 Todos os textos e ícones nítidos e modernos. O tênis no overlay é um modelo de tênis de corrida de performance.
 
 Composição: O corredor posicionado para preencher o espaço, em direção ao espectador ou ângulo dinâmico de 3/4, overlays legíveis e sem cobrir rosto/corpo. Iluminação noturna dramática criando contrastes interessantes. Apelo visual de abertura de anime ou pôster de evento.
-"
+"""
