@@ -14,7 +14,7 @@ TEMP_DIR = BASE_DIR / "temp" / "posts"
 
 TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
-GEMINI_ATIVO = False
+GEMINI_ATIVO = True
 
 # ==========================
 # EXCEPTION CUSTOM
@@ -64,7 +64,7 @@ class PostService:
     # GERAR POST COMPLETO
     # ==========================
 
-    def gerar_post(self, telegram_id, treino_id, fotos):
+    def gerar_post(self, telegram_id, treino_id, fotos, prompt_tipo="artistico"):
 
         if not self.pode_gerar_post(telegram_id):
             raise LimiteDiarioExcedido()
@@ -132,6 +132,7 @@ class PostService:
                     telegram_id=telegram_id,
                     image_path=fotos[0],
                     dados_treino=dados,
+                    prompt_tipo=prompt_tipo,
                     prompt_usuario=None
                 )
 

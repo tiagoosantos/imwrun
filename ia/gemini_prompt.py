@@ -1,94 +1,143 @@
-prompt2 = f"""
-Transforme esta foto de corrida em uma versão esportiva premium.
+from enum import StrEnum
+
+
+class PromptTipo(StrEnum):
+    PREMIUM = "premium"
+    CLEAN = "clean"
+    ARTISTICO = "artistico"
+    CARTOON = "cartoon"
+
+
+PROMPTS = {
+    PromptTipo.PREMIUM: """
+Transforme esta foto de corrida em uma versao esportiva premium.
 
 Estilo:
-- Visual cinematográfico
+- Visual cinematografico
 - Cores vibrantes
 - Alto contraste
-- Atmosfera dinâmica
-- Sensação de performance
+- Atmosfera dinamica
+- Sensacao de performance
 
 Destaque os dados do treino na imagem usando o modelo strava:
 
-- Distância: {distancia} km
+- Distancia: {distancia}
 - Tempo: {tempo}
 - Pace: {pace}
 
 Mantenha o atleta realista.
-Não escreva a palavra 'None' na imagem.
-"""
-
-prompt1 = f"""
-A primeira imagem é a foto do corredor.
-A segunda imagem é um logo oficial chamado "logo".
+Nao escreva a palavra 'None' na imagem.
+""",
+    PromptTipo.CLEAN: """
+A primeira imagem e a foto do corredor.
+A segunda imagem e um logo oficial chamado "logo".
 
 Estilo:
-- Visual cinematográfico
+- Visual cinematografico
 - Cores vibrantes
-- Atmosfera dinâmica
-- Sensação de performance
+- Atmosfera dinamica
+- Sensacao de performance
 
-Destaque o treino na imagem usando o modelo strava apenas com os dados disponíveis:
-Distância: {distancia} km
+Destaque o treino na imagem usando o modelo strava apenas com os dados disponiveis:
+Distancia: {distancia}
 Tempo: {tempo}
 Pace: {pace}
 
-Com base nas informações da cena de fundo, crie uma composição clean e visualmente impressionante que integre o logo de forma harmoniosa, sem sobrepor ou distorcer a imagem do corredor, por fim aplique um desfoque de 30%.
-Mantenha o atleta realista e não altere sua aparência ou o corpo.
-Não escreva a palavra 'None' na imagem.
+Com base nas informacoes da cena de fundo, crie uma composicao clean e visualmente impressionante que integre o logo de forma harmoniosa, sem sobrepor ou distorcer a imagem do corredor, por fim aplique um desfoque de 30%.
+Mantenha o atleta realista e nao altere sua aparencia ou o corpo.
+Nao escreva a palavra 'None' na imagem.
 
 Use a imagem chamada "logo" como logotipo oficial.
-Posicione o logo próximo a um dos cantos da imagem
+Posicione o logo proximo a um dos cantos da imagem
 (canto inferior direito ou superior direito),
-mantendo proporção e sem distorcer.
-""" 
+mantendo proporcao e sem distorcer.
+""",
+    PromptTipo.ARTISTICO: """
+Acao: Criar uma postagem de rede social vertical (9:16) com um estilo "Artistico e de Design Expresso", elevando a foto original para uma composicao de arte digital fluida.
 
-# PROMPT ARTISTICO
-PROMPT4 = f"""
-Ação: Criar uma postagem de rede social vertical (9:16) com um estilo "Artístico e de Design Expresso", elevando a foto original para uma composição de arte digital fluida.
+Composicao Visual:
+Sujeito: Um corredor central (masculino ou feminino, baseado na imagem original), mantendo a expressao confiante e sorridente e sinais visiveis de esforco, em pose de corrida ou pos-corrida. A identidade da imagem original e mantida apenas como base de expressao para um corredor generalizado.
+Cenario de Fundo (Reimaginado): O ambiente original e completamente reimaginado como uma vasta pintura abstrata fluida, com textura rica e pinceladas visiveis, usando tons profundos, com padroes geometricos abstratos e uma sensacao de movimento que se funde com o corredor, como se o mundo todo fosse uma tela monumental.
+Iluminacao e Atmosfera: As luzes ambientais originais sao transformadas em feixes de luz de estudio texturizados e coloridos, projetando sombras longas e padroes de luz complexos sobre o corredor e o solo. Uma nevoa colorida difunde a cena.
 
-Composição Visual:
-Sujeito: Um central central (masculino ou feminino, o [CORREDOR_GÊNERO] de image_0.png), mantendo a expressão confiante e sorridente e sinais visíveis de esforço (suor, rosto corado), em pose de corrida ou pós-corrida. A identidade de image_0.png é mantida apenas como base de expressão para um corredor generalizado.
-Cenário de Fundo (Reimaginado): O ambiente original é completamente reimaginado como uma vasta pintura abstrata fluida, com textura rica e pinceladas visíveis, usando tons profundos (ex: azuis intensos e laranjas queimados), com padrões geométricos abstratos e uma sensação de movimento que se funde com o corredor, como se o mundo todo fosse uma tela monumental.
-Iluminação e Atmosfera: As luzes ambientais originais são transformadas em feixes de luz de estúdio texturizados e coloridos (por exemplo, azul-petróleo frio e ocre quente), projetando sombras longas e padrões de luz complexos sobre o corredor e o solo. Uma névoa colorida difunde a cena.
+Integracao de Design:
+Textura na Vestimenta: Sutilmente, sobreponha padroes topograficos e uma malha de dados translucida sobre a camiseta ou vestuario do corredor.
+Formas de Dados Flutuantes: No canto inferior, apresente os dados contidos dentro de formas organicas, poligonais e translucidas que flutuam na cena. Cada forma tem uma textura e icone integrados:
 
-Integração de Design: Textura na Vestimenta: Sutilmente, sobreponha padrões topográficos e uma malha de dados translúcida sobre a camiseta/vestuário do corredor.
-Formas de Dados Flutuantes: No canto inferior, apresente os dados contidos dentro de formas orgânicas, poligonais e translúcidas (idênticas às de image_8.png) que flutuam na cena. Cada forma tem uma textura e ícone integrados:
-
-[Painel 1] Ícone de Cronômetro + TEMPO: [{tempo}]
-[Painel 2] Ícone de Pin de Mapa + DISTÂNCIA: [{distancia}]
-[Painel 3] Ícone de Tênis + PACE: [{pace}]
+[Painel 1] Icone de Cronometro + TEMPO: {tempo}
+[Painel 2] Icone de Pin de Mapa + DISTANCIA: {distancia}
+[Painel 3] Icone de Tenis + PACE: {pace}
 
 Elementos de Marca e Texto:
-Canto Superior Esquerdo: "[NOME_DA_MARCA/CLUBE] LOGO" (menor e integrado de forma mais sutil à textura do mural abstrato).
-Canto Superior Direito: "[NOME_DA_SESSÃO/CORRIDA]" (em fonte moderna, integrado sutilmente à luz projetada).
+Canto Superior Esquerdo: "[NOME_DA_MARCA/CLUBE] LOGO" integrado de forma sutil a textura do mural abstrato.
+Canto Superior Direito: "[NOME_DA_SESSAO/CORRIDA]" em fonte moderna, integrado sutilmente a luz projetada.
 
-Acabamento: O suor é realçado com micro-glitter, e o concreto/solo do local tem linhas gráficas de GPS integradas. O resultado deve parecer uma fusão de fotografia e design de arte.
-"""
+Acabamento: O suor e realcado com micro-glitter, e o concreto ou solo do local tem linhas graficas de GPS integradas. O resultado deve parecer uma fusao de fotografia e design de arte.
+""",
+    PromptTipo.CARTOON: """
+Geracao de imagem vertical para redes sociais (como Reels/TikTok) em estilo anime de alta qualidade.
 
-# PROMPT CARTOON
-PROMPT5 = f"""
-Geração de imagem vertical para redes sociais (como Reels/TikTok) em estilo anime de alta qualidade.
+Sujeito Principal: Uma representacao de anime detalhada e dinamica de um corredor ou corredora generico(a), em pleno movimento de corrida com passada media e bracos bombeando. O corredor veste equipamento de corrida de performance de cores vivas e um relogio de esporte moderno. Sua expressao e focada e determinada.
 
-Sujeito Principal: Uma representação de anime detalhada e dinâmica de um corredor ou corredora genérico(a) (etnia e gênero variáveis, mas com aparência atlética e em forma), em pleno movimento de corrida com passada média e braços bombeando. O corredor veste equipamento de corrida de performance de cores vivas e um relógio de esporte moderno. Sua expressão é focada e determinada.
+Cenario: Um local de corrida noturno iconico. O plano de fundo e redesenhado em estilo anime de alta qualidade e com cores aprimoradas. O piso tem marcas de passos sutis. As luzes de rua fortes estao presentes, criando feixes de luz dramaticos e lens flares coloridos e estilizados. Arvores e predios distantes sob o ceu noturno. Linhas de velocidade sutis no ar ao redor do corredor.
 
-Cenário: Um local de corrida noturno icônico (como uma ciclovia de cidade costeira, uma trilha de parque iluminada, ou ruas de metrópole ao anoitecer). O plano de fundo é redesenhado em estilo anime de alta qualidade e com cores aprimoradas. Em vez do mural de basquete, a parede de concreto limpa tem sutil arte urbana abstrata genérica ou arte de desempenho em tons mais vibrantes e traços nítidos. O piso (concreto ou trilha) tem marcas de passos sutis. As luzes de rua fortes estão presentes, criando feixes de luz dramáticos e lens flares coloridos e estilizados. Árvores e prédios distantes sob o céu noturno. Linhas de velocidade sutis no ar ao redor do corredor.
+Overlays de Marketing:
 
-Overlays de Marketing (Posições Mantidas, Conteúdo Generalizado/Variável):
+Canto superior esquerdo: O logo "RUNNERS CLUB" com o icone de corredor.
+Canto superior direito: O texto "NIGHT SESSION DONE" em fonte moderna e limpa.
+Canto inferior: Uma caixa preta translucida flutuante com icones e dados de corrida variaveis:
 
-Canto superior esquerdo: O logo "RUNNERS CLUB" com o ícone de corredor (mantido).
+Tempo (com cronometro): {tempo}
+Distancia (com mapa): {distancia}
+Pace (com tenis): {pace}
 
-Canto superior direito: O texto "NIGHT SESSION DONE" em fonte moderna e limpa (mantido).
+Todos os textos e icones nitidos e modernos. O tenis no overlay e um modelo de tenis de corrida de performance.
 
-Canto inferior: Uma caixa preta translúcida flutuante com ícones e dados de corrida variáveis (com ícones: cronômetro, mapa, tênis):
+Composicao: O corredor posicionado para preencher o espaco, em direcao ao espectador ou em angulo dinamico de 3/4, overlays legiveis e sem cobrir rosto ou corpo. Iluminacao noturna dramatica criando contrastes interessantes. Apelo visual de abertura de anime ou poster de evento.
+""",
+}
 
-Tempo (com cronômetro): {tempo}
 
-Distância (com mapa): {distancia}
+def _normalizar_tipo(tipo: PromptTipo | str) -> PromptTipo:
+    if isinstance(tipo, PromptTipo):
+        return tipo
 
-Pace (com tênis): {pace}
+    try:
+        return PromptTipo(str(tipo).strip().lower())
+    except ValueError as exc:
+        tipos_disponiveis = ", ".join(item.value for item in PromptTipo)
+        raise ValueError(
+            f"Tipo de prompt invalido: {tipo!r}. Use um destes: {tipos_disponiveis}."
+        ) from exc
 
-Todos os textos e ícones nítidos e modernos. O tênis no overlay é um modelo de tênis de corrida de performance.
 
-Composição: O corredor posicionado para preencher o espaço, em direção ao espectador ou ângulo dinâmico de 3/4, overlays legíveis e sem cobrir rosto/corpo. Iluminação noturna dramática criando contrastes interessantes. Apelo visual de abertura de anime ou pôster de evento.
-"""
+def _valor_campo(valor, sufixo: str = "") -> str:
+    if valor is None or str(valor).strip() == "":
+        return "nao informado"
+
+    texto = str(valor).strip()
+    if sufixo and texto.lower().endswith(sufixo.strip().lower()):
+        return texto
+
+    return f"{texto}{sufixo}"
+
+
+def render_prompt(
+    tipo: PromptTipo | str,
+    distancia=None,
+    tempo=None,
+    pace=None,
+    extra=None,
+) -> str:
+    template = PROMPTS[_normalizar_tipo(tipo)]
+
+    prompt = template.format(
+        distancia=_valor_campo(distancia, " km"),
+        tempo=_valor_campo(tempo),
+        pace=_valor_campo(pace),
+    )
+
+    if extra and extra.strip():
+        prompt += f"\n\nEstilo adicional solicitado: {extra.strip()}"
+
+    return prompt.strip()

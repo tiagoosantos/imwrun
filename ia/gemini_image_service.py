@@ -1,124 +1,92 @@
-import os
-import uuid
 import logging
+from datetime import datetime
+from pathlib import Path
+
 from PIL import Image
 from google import genai
 from google.genai import types
-from config.settings import GEMINI
-from datetime import datetime
-from pathlib import Path
-from datetime import datetime
 
-import gemini_prompt as gp
+from config.settings import GEMINI
+from ia import gemini_prompt as gp
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 LOGO_PATH = BASE_DIR / "assets" / "logos" / "imwrun_logo.jpeg"
 GENERATED_DIR = BASE_DIR / "generated_images"
 GENERATED_DIR.mkdir(parents=True, exist_ok=True)
 
-class GeminiImageService:
-    """
-    Serviço de geração de imagem via Gemini (image-to-image)
-    baseado exatamente no padrão validado no teste_de_imagem2.py
-    """
 
+class GeminiImageService:
     def __init__(self):
         self.log = logging.getLogger(__name__)
-
         self.client = genai.Client(api_key=GEMINI)
-
         self.model = "gemini-3.1-flash-image-preview"
         # self.model = "gemini-2.5-flash-image"
-
-        self.output_dir = "temp/gemini"
-        os.makedirs(self.output_dir, exist_ok=True)
-
-    # ==========================================================
-    # MÉTODO PÚBLICO
-    # ==========================================================
 
     def gerar_imagem_estilizada(
         self,
         telegram_id: int,
         image_path: str,
-        dados_treino: dict,
-        prompt_usuario: str,
+        dados_treino: dict | None,
+        prompt_tipo: gp.PromptTipo | str = gp.PromptTipo.ARTISTICO,
+        prompt_usuario: str | None = None,
     ) -> str:
-
-        prompt_final = self._montar_prompt(dados_treino, prompt_usuario)
+        prompt_final = self._montar_prompt(
+            dados_treino=dados_treino or {},
+            prompt_tipo=prompt_tipo,
+            prompt_usuario=prompt_usuario,
+        )
 
         try:
-            image = Image.open(image_path)
-            logo = Image.open(LOGO_PATH)
+            with Image.open(image_path) as image, Image.open(LOGO_PATH) as logo:
+                response = self.client.models.generate_content(
+                    model=self.model,
+                    contents=[prompt_final, image, logo],
+                    config=types.GenerateContentConfig(
+                        image_config=types.ImageConfig(aspect_ratio="9:16")
+                    ),
+                )
 
-            response = self.client.models.generate_content(
-                model=self.model,
-                contents=[prompt_final, image, logo],
-                config=types.GenerateContentConfig(
-                    image_config=types.ImageConfig(
-                        aspect_ratio="9:16"
-                    )
-                ),
-            )
-
-            # output_path = self._extrair_e_salvar(response)
             output_path = self._extrair_e_salvar(response, telegram_id)
 
-            self.log.info("Imagem Gemini gerada com sucesso")
-
-            return output_path
+            self.log.info(
+                "Imagem Gemini gerada com sucesso",
+                extra={"telegram_id": telegram_id, "prompt_tipo": prompt_tipo},
+            )
+            return str(output_path)
 
         except Exception:
-            self.log.error("Erro ao gerar imagem via Gemini", exc_info=True)
+            self.log.error(
+                "Erro ao gerar imagem via Gemini",
+                exc_info=True,
+                extra={"telegram_id": telegram_id, "prompt_tipo": prompt_tipo},
+            )
             raise
 
-    # ==========================================================
-    # MÉTODOS INTERNOS
-    # ==========================================================
-
-    def _montar_prompt(self, dados_treino: dict, prompt_usuario: str) -> str:
-
-        distancia = dados_treino.get("distancia")
-        tempo = dados_treino.get("tempo")
-        pace = dados_treino.get("pace")
-
-        principal = gp.PROMPT4.format(
-            distancia=distancia,
-            tempo=tempo,
-            pace=pace
+    def _montar_prompt(
+        self,
+        dados_treino: dict,
+        prompt_tipo: gp.PromptTipo | str,
+        prompt_usuario: str | None,
+    ) -> str:
+        return gp.render_prompt(
+            tipo=prompt_tipo,
+            distancia=dados_treino.get("distancia"),
+            tempo=dados_treino.get("tempo"),
+            pace=dados_treino.get("pace"),
+            extra=prompt_usuario,
         )
 
-        alternativo = gp.prompt2.format(
-            distancia=distancia,
-            tempo=tempo,
-            pace=pace
-        )
-
-        if prompt_usuario:
-            prompt = alternativo+f"\nEstilo adicional solicitado: {prompt_usuario}"
-        else:
-            prompt = principal
-
-        return prompt.strip()
-
-    def _extrair_e_salvar(self, response, telegram_id):
-
+    def _extrair_e_salvar(self, response, telegram_id: int) -> Path:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
 
-        for part in response.parts:
+        for part in getattr(response, "parts", []) or []:
+            if getattr(part, "inline_data", None) is None:
+                continue
 
-            if part.inline_data is not None:
+            image = part.as_image()
+            output_path = GENERATED_DIR / f"{telegram_id}_{timestamp}.jpg"
+            image.save(output_path, format="JPEG")
+            return output_path
 
-                image = part.as_image()
-
-                # file_name = f"gemini_{uuid.uuid4().hex}.png"
-                # output_path = os.path.join(self.output_dir, file_name)
-
-                filename = f"{telegram_id}_{timestamp}.jpg"
-                output_path = GENERATED_DIR / filename
-
-                image.save(output_path)
-
-                return output_path
-
-        raise RuntimeError("Gemini não retornou imagem válida")
+        raise RuntimeError("Gemini nao retornou imagem valida")

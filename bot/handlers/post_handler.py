@@ -1,35 +1,37 @@
-from telebot.types import (
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
-    InputMediaPhoto
-)
 import threading
 from concurrent.futures import ThreadPoolExecutor
+
+from telebot.types import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    InputMediaPhoto,
+)
+
 from bot.state.post_state import post_temp, post_timers
-from bot.utils.bot_utils import formatar_tempo, formatar_distancia
+from bot.utils.bot_utils import formatar_distancia, formatar_tempo
+from service.post_service import GEMINI_ATIVO
 
-
-# ==========================================================
-# EXECUTOR PARA BACKGROUND
-# ==========================================================
 
 executor = ThreadPoolExecutor(max_workers=3)
 
 
-# ==========================
-# ESTADOS
-# ==========================
-
 POST_ESCOLHENDO_TREINO = "post_escolhendo_treino"
 POST_AGUARDANDO_FOTO = "post_aguardando_foto"
+POST_ESCOLHENDO_ESTILO = "post_escolhendo_estilo"
 
 
-# ==========================================================
-# INÍCIO DO FLUXO
-# ==========================================================
+def criar_markup_estilo():
+    markup = InlineKeyboardMarkup(row_width=2)
+    markup.add(
+        InlineKeyboardButton("Premium", callback_data="post_estilo_premium"),
+        InlineKeyboardButton("Clean", callback_data="post_estilo_clean"),
+        InlineKeyboardButton("Artistico", callback_data="post_estilo_artistico"),
+        InlineKeyboardButton("Cartoon", callback_data="post_estilo_cartoon"),
+    )
+    return markup
+
 
 def iniciar_post_command(bot, services, message):
-
     post_service = services["post"]
     corrida_service = services["corrida"]
     log = services["log"]
@@ -41,41 +43,39 @@ def iniciar_post_command(bot, services, message):
         "Iniciando fluxo de postar treino",
         extra={
             "telegram_id": telegram_id,
-            "correlation_id": correlation_id
-        }
+            "correlation_id": correlation_id,
+        },
     )
 
     if not post_service.pode_gerar_post(telegram_id):
-
         log.info(
-            "Limite diário de post atingido",
+            "Limite diario de post atingido",
             extra={
                 "telegram_id": telegram_id,
-                "correlation_id": correlation_id
-            }
+                "correlation_id": correlation_id,
+            },
         )
 
         bot.send_message(
             telegram_id,
-            "⚠️ Você já utilizou suas 2 gerações hoje.\nTente novamente amanhã."
+            "Voce ja utilizou suas 2 geracoes hoje.\nTente novamente amanha.",
         )
         return
 
     treinos = corrida_service.listar_ultimos(telegram_id)
 
     if not treinos:
-
         log.info(
-            "Usuário tentou postar sem treinos",
+            "Usuario tentou postar sem treinos",
             extra={
                 "telegram_id": telegram_id,
-                "correlation_id": correlation_id
-            }
+                "correlation_id": correlation_id,
+            },
         )
 
         bot.send_message(
             telegram_id,
-            "Você ainda não possui treinos registrados."
+            "Voce ainda nao possui treinos registrados.",
         )
         return
 
@@ -83,7 +83,8 @@ def iniciar_post_command(bot, services, message):
         "estado": POST_ESCOLHENDO_TREINO,
         "treino_id": None,
         "foto": None,
-        "correlation_id": correlation_id
+        "prompt_tipo": None,
+        "correlation_id": correlation_id,
     }
 
     markup = InlineKeyboardMarkup()
@@ -96,44 +97,28 @@ def iniciar_post_command(bot, services, message):
         markup.add(
             InlineKeyboardButton(
                 f"{distancia} - {tempo}",
-                callback_data=f"post_treino_{treino_id}"
+                callback_data=f"post_treino_{treino_id}",
             )
         )
 
     bot.send_message(
         telegram_id,
-        "🏃 Escolha o treino para gerar o post:",
-        reply_markup=markup
+        "Escolha o treino para gerar o post:",
+        reply_markup=markup,
     )
 
 
-# ==========================================================
-# REGISTRO DOS HANDLERS
-# ==========================================================
-
 def register_post(bot, services):
-
     post_service = services["post"]
     log = services["log"]
 
-    # ------------------------------------------------------
-    # Callback do menu
-    # ------------------------------------------------------
-
     @bot.callback_query_handler(func=lambda c: c.data == "cmd_postar")
     def iniciar_post_callback(call):
-
         bot.answer_callback_query(call.id)
-
         iniciar_post_command(bot, services, call.message)
-
-    # ------------------------------------------------------
-    # Escolher treino
-    # ------------------------------------------------------
 
     @bot.callback_query_handler(func=lambda c: c.data.startswith("post_treino_"))
     def escolher_treino(call):
-
         telegram_id = call.message.chat.id
         data = post_temp.get(telegram_id)
 
@@ -148,34 +133,57 @@ def register_post(bot, services):
             extra={
                 "telegram_id": telegram_id,
                 "correlation_id": correlation_id,
-                "treino_id": treino_id
-            }
+                "treino_id": treino_id,
+            },
         )
 
         data["treino_id"] = treino_id
         data["estado"] = POST_AGUARDANDO_FOTO
 
-        # bot.edit_message_text(
-        #     "📸 Agora envie uma foto para gerar o post.",
-        #     telegram_id,
-        #     call.message.message_id
-        # )
-
+        bot.answer_callback_query(call.id)
         bot.send_message(
             telegram_id,
-            "📸 Agora envie uma foto para gerar o post.",
+            "Agora envie uma foto para gerar o post.",
         )
 
-    # ------------------------------------------------------
-    # Receber foto
-    # ------------------------------------------------------
+    @bot.callback_query_handler(func=lambda c: c.data.startswith("post_estilo_"))
+    def escolher_estilo(call):
+        telegram_id = call.message.chat.id
+        data = post_temp.get(telegram_id)
+
+        if not data or data.get("estado") != POST_ESCOLHENDO_ESTILO:
+            return
+
+        correlation_id = data["correlation_id"]
+        prompt_tipo = call.data.replace("post_estilo_", "")
+        data["prompt_tipo"] = prompt_tipo
+        data["gerando"] = True
+
+        log.info(
+            "Estilo selecionado para gerar imagem IA",
+            extra={
+                "telegram_id": telegram_id,
+                "correlation_id": correlation_id,
+                "prompt_tipo": prompt_tipo,
+            },
+        )
+
+        bot.answer_callback_query(call.id)
+        bot.send_message(telegram_id, "Gerando seu post...")
+        bot.send_chat_action(telegram_id, "upload_photo")
+
+        executor.submit(
+            gerar_post_final,
+            bot,
+            telegram_id,
+            services,
+        )
 
     @bot.message_handler(
         content_types=["photo"],
-        func=lambda m: post_temp.get(m.chat.id, {}).get("estado") == POST_AGUARDANDO_FOTO
+        func=lambda m: post_temp.get(m.chat.id, {}).get("estado") == POST_AGUARDANDO_FOTO,
     )
     def receber_foto(message):
-
         telegram_id = message.chat.id
         data = post_temp.get(telegram_id)
 
@@ -185,95 +193,91 @@ def register_post(bot, services):
         if data.get("gerando"):
             bot.send_message(
                 telegram_id,
-                "⏳ Já estou gerando um post para você, aguarde."
+                "Ja estou gerando um post para voce, aguarde.",
             )
             return
 
         correlation_id = data["correlation_id"]
 
         try:
-
             file_info = bot.get_file(message.photo[-1].file_id)
             downloaded_file = bot.download_file(file_info.file_path)
 
             path = post_service.salvar_foto_temporaria(downloaded_file)
 
             data["foto"] = path
-            data["gerando"] = True
 
             log.info(
                 "Foto recebida para gerar post",
                 extra={
                     "telegram_id": telegram_id,
-                    "correlation_id": correlation_id
-                }
+                    "correlation_id": correlation_id,
+                },
             )
 
-            bot.send_message(telegram_id, "⏳ Gerando seu post...")
+            if GEMINI_ATIVO:
+                data["estado"] = POST_ESCOLHENDO_ESTILO
+                data["prompt_tipo"] = "artistico"
+
+                bot.send_message(
+                    telegram_id,
+                    "Escolha o estilo da imagem gerada por IA:",
+                    reply_markup=criar_markup_estilo(),
+                )
+                return
+
+            data["gerando"] = True
+            bot.send_message(telegram_id, "Gerando seu post...")
             bot.send_chat_action(telegram_id, "upload_photo")
 
-            # 🔥 EXECUTA EM BACKGROUND
             executor.submit(
                 gerar_post_final,
                 bot,
                 telegram_id,
-                services
+                services,
             )
 
         except Exception as e:
-
             log.error(
                 f"Erro ao processar foto: {e}",
                 extra={
                     "telegram_id": telegram_id,
-                    "correlation_id": correlation_id
-                }
+                    "correlation_id": correlation_id,
+                },
             )
 
             bot.send_message(
                 telegram_id,
-                "❌ Erro ao processar a foto."
+                "Erro ao processar a foto.",
             )
 
             post_temp.pop(telegram_id, None)
-            
-    # ------------------------------------------------------
-    # Cancelar apenas fluxo de post
-    # ------------------------------------------------------
 
     @bot.message_handler(commands=["cancelar"])
     def cancelar_post(message):
-
         telegram_id = message.chat.id
         data = post_temp.get(telegram_id)
 
-        # 🔎 Só cancela se houver post em andamento
         if not data:
             bot.send_message(
                 telegram_id,
-                "ℹ️ Nenhum post em andamento para cancelar."
+                "Nenhum post em andamento para cancelar.",
             )
             return
 
-        # 🔒 Cancelar timer se existir
         timer = post_timers.pop(telegram_id, None)
         if timer:
             timer.cancel()
 
-        # 🔒 Limpar estado
         post_temp.pop(telegram_id, None)
 
         bot.send_message(
             telegram_id,
-            "❌ Geração de post cancelada com sucesso."
+            "Geracao de post cancelada com sucesso.",
         )
 
-# ==========================================================
-# GERAÇÃO FINAL
-# ==========================================================
 
 def gerar_post_final(bot, telegram_id, services):
-
     post_service = services["post"]
     log = services["log"]
 
@@ -285,42 +289,37 @@ def gerar_post_final(bot, telegram_id, services):
     correlation_id = data["correlation_id"]
 
     try:
-
-        bot.send_message(telegram_id, "👍 Tá pronto o seu post...")
+        bot.send_message(telegram_id, "Ta pronto o seu post...")
 
         resultado = post_service.gerar_post(
             telegram_id=telegram_id,
             treino_id=data["treino_id"],
-            fotos=[data["foto"]]
+            fotos=[data["foto"]],
+            prompt_tipo=data.get("prompt_tipo") or "artistico",
         )
 
-        # 🔒 Se atingiu limite por minuto
         if isinstance(resultado, dict) and resultado.get("aguardar"):
-
             segundos = resultado["segundos"]
 
             bot.send_message(
                 telegram_id,
-                f"🚦 Muitas solicitações no momento.\n"
-                f"Aguardando {segundos} segundos para tentar novamente..."
+                f"Muitas solicitacoes no momento.\n"
+                f"Aguardando {segundos} segundos para tentar novamente...",
             )
 
-            # Cancelar timer antigo se existir
             timer_existente = post_timers.get(telegram_id)
             if timer_existente:
                 timer_existente.cancel()
 
-            # Criar novo timer
             timer = threading.Timer(
                 segundos,
                 gerar_post_final,
-                args=(bot, telegram_id, services)
+                args=(bot, telegram_id, services),
             )
 
             post_timers[telegram_id] = timer
             timer.start()
-
-            return  # ⚠️ IMPORTANTE: não limpar estado aqui
+            return
 
         imagens = resultado
 
@@ -328,8 +327,8 @@ def gerar_post_final(bot, telegram_id, services):
             "Post gerado com sucesso",
             extra={
                 "telegram_id": telegram_id,
-                "correlation_id": correlation_id
-            }
+                "correlation_id": correlation_id,
+            },
         )
 
         media = []
@@ -343,9 +342,6 @@ def gerar_post_final(bot, telegram_id, services):
         for m in media:
             m.media.close()
 
-        # post_service.limpar_arquivos(imagens)
-
-        # 🔥 Limpeza final segura
         post_temp.pop(telegram_id, None)
 
         timer = post_timers.pop(telegram_id, None)
@@ -353,18 +349,17 @@ def gerar_post_final(bot, telegram_id, services):
             timer.cancel()
 
     except Exception as e:
-
         log.error(
             f"Erro ao gerar post: {e}",
             extra={
                 "telegram_id": telegram_id,
-                "correlation_id": correlation_id
-            }
+                "correlation_id": correlation_id,
+            },
         )
 
         bot.send_message(
             telegram_id,
-            "❌ Ocorreu um erro ao gerar o post."
+            "Ocorreu um erro ao gerar o post.",
         )
 
         post_temp.pop(telegram_id, None)
@@ -372,4 +367,3 @@ def gerar_post_final(bot, telegram_id, services):
         timer = post_timers.pop(telegram_id, None)
         if timer:
             timer.cancel()
-    
