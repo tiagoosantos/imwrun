@@ -20,8 +20,8 @@ class GeminiImageService:
     def __init__(self):
         self.log = logging.getLogger(__name__)
         self.client = genai.Client(api_key=GEMINI)
-        # self.model = "gemini-3.1-flash-image-preview"
-        self.model = "gemini-2.5-flash-image"
+        self.model = "gemini-3.1-flash-image-preview"
+        # self.model = "gemini-2.5-flash-image"
 
     def gerar_imagem_estilizada(
         self,
@@ -86,7 +86,7 @@ class GeminiImageService:
 
             image = part.as_image()
             output_path = GENERATED_DIR / f"{telegram_id}_{timestamp}.jpg"
-            image.save(output_path, format="JPEG")
+            image.save(output_path)
             return output_path
 
         raise RuntimeError("Gemini nao retornou imagem valida")
