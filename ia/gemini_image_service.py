@@ -20,8 +20,8 @@ class GeminiImageService:
     def __init__(self):
         self.log = logging.getLogger(__name__)
         self.client = genai.Client(api_key=GEMINI)
-        self.model = "gemini-3.1-flash-image-preview"
-        # self.model = "gemini-2.5-flash-image"
+        # self.model = "gemini-3.1-flash-image-preview"
+        self.model = "gemini-2.5-flash-image"
 
     def gerar_imagem_estilizada(
         self,
