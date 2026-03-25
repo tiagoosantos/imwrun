@@ -6,6 +6,7 @@ class PromptTipo(StrEnum):
     CLEAN = "clean"
     ARTISTICO = "artistico"
     CARTOON = "cartoon"
+    CARTOON2 = "cartoon2"
 
 
 PROMPTS = {
@@ -75,6 +76,27 @@ Canto Superior Direito: "[NOME_DA_SESSAO/CORRIDA]" em fonte moderna, integrado s
 Acabamento: O suor e realcado com micro-glitter, e o concreto ou solo do local tem linhas graficas de GPS integradas. O resultado deve parecer uma fusao de fotografia e design de arte.
 """,
     PromptTipo.CARTOON: """
+Geração de imagem vertical (9:16) para redes sociais em estilo Ilustração Digital Premium de Anime Moderno (Clean Line Art, Sombreamento Celular Suave, High-Definition).
+
+[INSTRUÇÃO MULTIMODAL DE IMAGE-TO-IMAGE]: Analise a pose, a fisionomia e o equipamento (cores da roupa, relógio) da imagem de origem enviada. Gere a nova imagem mantendo fielmente esses elementos imutáveis, transformando-os para o estilo artístico descrito abaixo.
+
+Sujeito Principal: Uma representação de anime detalhada e dinâmica do corredor ou corredora da imagem de origem, em pleno movimento de corrida com passada média e braços bombeando. Veste o mesmo equipamento de performance de cores vivas e o relógio de esporte moderno. Sua expressão facial é focada e determinada, preservando a identidade do sujeito original.
+
+Cenário: Um local de corrida noturno icônico. O plano de fundo é redesenhado no estilo anime descrito, com profundidade de campo e cores aprimoradas. O piso tem marcas de passos sutis. Luzes de rua fortes estão presentes, criando feixes de luz dramáticos, bloom atmosférico e lens flares coloridos e estilizados. Árvores e prédios distantes sob um céu noturno profundo com estrelas sutis. Linhas de velocidade cinéticas e sutis no ar ao redor do corredor para enfatizar o movimento.
+
+[INSTRUÇÃO CRÍTICA DE RENDERIZAÇÃO DE TEXTO]: Os textos abaixo devem ser renderizados com nitidez absoluta, tipografia moderna e aparência de vetor premium.
+
+Overlays de Marketing:
+1. Canto superior esquerdo: O logo "RUNNERS CLUB" com o ícone de corredor estilizado.
+2. Canto superior direito: O texto "NIGHT SESSION DONE" em fonte moderna, limpa e nítida.
+3. Canto inferior: Uma caixa preta translúcida flutuante com cantos arredondados, contendo ícones vetoriais modernos e os seguintes dados variáveis legíveis:
+   - Tempo (com ícone de cronômetro): {tempo}
+   - Distância (com ícone de mapa/pin): {distancia}
+   - Pace (com ícone de tênis de corrida de performance): {pace}
+
+Composição: O corredor posicionado para preencher o espaço de forma equilibrada, em direção ao espectador ou em ângulo dinâmico de 3/4. Todos os overlays de texto devem ser 100% legíveis, nítidos e posicionados sem cobrir o rosto ou o corpo do corredor. Iluminação noturna dramática criando contrastes interessantes e renderização de cores vibrantes. Apelo visual de uma abertura de anime de alta produção ou pôster oficial de evento.
+""",
+    PromptTipo.CARTOON2: """
 Geracao de imagem vertical para redes sociais (como Reels/TikTok) em estilo anime de alta qualidade.
 
 Sujeito Principal: Uma representacao de anime detalhada e dinamica de um corredor ou corredora generico(a), em pleno movimento de corrida com passada media e bracos bombeando. O corredor veste equipamento de corrida de performance de cores vivas e um relogio de esporte moderno. Sua expressao e focada e determinada.
@@ -120,6 +142,10 @@ def _valor_campo(valor, sufixo: str = "") -> str:
         return texto
 
     return f"{texto}{sufixo}"
+
+
+def normalizar_tipo(tipo: PromptTipo | str) -> PromptTipo:
+    return _normalizar_tipo(tipo)
 
 
 def render_prompt(
