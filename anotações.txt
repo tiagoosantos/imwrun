@@ -81,8 +81,77 @@ MELHORIAS:
 -------------
 -- 05/02/2026
 -------------
-
-
 MELHORIAS ESTRUTURAIS:
 - gemini_image_service separar em gemini_image e service/gemini_image_service
 - mover post_compositor e post_generator e os teste_de_imagem da pasta ia para outra pasta
+
+-------------
+-- 05/02/2026
+-------------
+== VERIFICAR:
+  - o valor que aparece para identificar qual treino deve ser usado para o posts está fora do real, provavelmente está com problema na hora de formatar o valor para minutos e kilometros.
+  - em alguns casos os erros estão sendo enviados para o chat do telegram e o certo é ser encaminhado para o bot de erros
+
+== decisão sobre os posts:
+  - inicialmente vamos trabalhar apenas com a imagem gerada localmente
+  - o custo das imagens por ia é alto e inviável momentaneamente
+  - a estrutura atual já está funcional e satisfatória para o projeto, gerando 4 tipos de imagens boas mas só no modelo de ia mais cara, as outras opções caem muito a qualidade
+
+== MELHORIAS ESTRUTURAIS:
+  = consideraçoes importantes:
+    - o administrador ainda é um esportista e deve conseguir registrar os seus treinos normalmente, participar dos rankings e as demais funções que todo usuario normal tem acesso
+
+  = INCLUIR CAMPO PARA ADMINISTRADOR:
+    0- necessidades para aplicação
+      - usar id_telegram como chave
+      - na tabela usuários incluir as colunas ativo e "ad" (admin), ambas booleanas
+      - coluna ativo = ativar ou desativar usuário do bot
+      - coluna ad = incluir e excluir usuario como administrador
+      - acrescentar no menu principal o botão ADMINISTRADOR
+
+    1- quem será considerado ADMINISTRADOR:
+      - usuarios.ad = True
+
+    2- o que o administrador pode ver/fazer dentro do campo ADMINISTRADOR: 
+      A- USUARIOS:
+        - bloquear ou desbloquear usuario
+        - listar usuários ativos e inativos
+
+      B- TREINOS:
+        - escolher usuario para exibir informações usando nome, id_telegram, nome informado pelo telegram
+        - listar treinos dos ultimos trinta dias
+        - fazer buscas de treinos por periodo (mes atual, mes anterior, periodo especifico)
+        - selecionar treinos vindos da busca
+        - dos treinos selecionados dar opção de editar e excluir treinos
+
+      C- PROJETOS (METAS):
+        - criar a tabela de projetos com as colunas:
+          * id_projeto: serial pk
+          * nome_projeto: varchar
+          * inicio_projeto: datetime
+          * fim_projeto: datetima
+          * tipo_treino: array, seguindo o tipos que já existem (talvez criar a tabela de tipos de treinos)
+
+        - criar a tabela de metas:
+          * id_projeto: fk tabela projetos
+          * periodo: date (01/mm/aaaa)
+          * meta_distancia: inteiro (mesmo padrão utilizado no registro dos treinos)
+          * meta_quantidade: inteiro 
+          * meta_tempo: inteiro (mesmo padrão utilizado no registro dos treinos)
+          obs: a coluna periodo vai receber o primeiro dia de cada mes/ano que esteja dentro de inicio_projeto e fim_projeto
+
+        - como inserir os dados das metas:
+          * analisar a possibilidade de usar ia para criar a query de insert para a tabela de metas
+          * caso não seja viavel, construir a função de loop para o bot que solicite o valor das metas para cada periodo do projeto
+
+        - criar, listar, editar, encerrar e desativar projetos (metas)
+        - ver progresso dos projetos: 
+          * quantos estão participando (contar quantos usuarios registraram treinos no periodo e que atendem aos requisitos do projeto)
+          * qual a porcentagem de usuarios que cumpriram (dos que estão participando, contar quantos alcançaram ou superaram o valor da meta)
+          * se ainda não cumpriu a meta, quem é o usuário mais próximo de cumprir o projeto (dos que estão participando e não cumpriram, qual o valor faltante para a conclusão)
+
+      D- RANKING POR PROJETO:
+        - incluir na estrutura de ranking os resultados por projetos, analisando os resultados do período por:
+          * quantidade de treino
+          * distancia total dos treinos
+          * tempo total de treino
