@@ -17,11 +17,12 @@ GENERATED_DIR.mkdir(parents=True, exist_ok=True)
 
 
 class GeminiImageService:
+    DEFAULT_MODEL = "gemini-3.1-flash-image-preview"
+    CARTOON_MODEL = "gemini-2.5-flash-image"
+
     def __init__(self):
         self.log = logging.getLogger(__name__)
         self.client = genai.Client(api_key=GEMINI)
-        self.model = "gemini-3.1-flash-image-preview"
-        # self.model = "gemini-2.5-flash-image"
 
     def gerar_imagem_estilizada(
         self,
@@ -36,22 +37,32 @@ class GeminiImageService:
             prompt_tipo=prompt_tipo,
             prompt_usuario=prompt_usuario,
         )
+        prompt_tipo_normalizado = gp.normalizar_tipo(prompt_tipo)
 
         try:
             with Image.open(image_path) as image, Image.open(LOGO_PATH) as logo:
+                model, contents, config = self._resolver_requisicao(
+                    prompt_tipo=prompt_tipo_normalizado,
+                    prompt=prompt_final,
+                    image=image,
+                    logo=logo,
+                )
+
                 response = self.client.models.generate_content(
-                    model=self.model,
-                    contents=[prompt_final, image, logo],
-                    config=types.GenerateContentConfig(
-                        image_config=types.ImageConfig(aspect_ratio="9:16")
-                    ),
+                    model=model,
+                    contents=contents,
+                    config=config,
                 )
 
             output_path = self._extrair_e_salvar(response, telegram_id)
 
             self.log.info(
                 "Imagem Gemini gerada com sucesso",
-                extra={"telegram_id": telegram_id, "prompt_tipo": prompt_tipo},
+                extra={
+                    "telegram_id": telegram_id,
+                    "prompt_tipo": prompt_tipo_normalizado.value,
+                    "model": model,
+                },
             )
             return str(output_path)
 
@@ -59,7 +70,10 @@ class GeminiImageService:
             self.log.error(
                 "Erro ao gerar imagem via Gemini",
                 exc_info=True,
-                extra={"telegram_id": telegram_id, "prompt_tipo": prompt_tipo},
+                extra={
+                    "telegram_id": telegram_id,
+                    "prompt_tipo": prompt_tipo_normalizado.value,
+                },
             )
             raise
 
@@ -75,6 +89,42 @@ class GeminiImageService:
             tempo=dados_treino.get("tempo"),
             pace=dados_treino.get("pace"),
             extra=prompt_usuario,
+        )
+
+    def obter_modelo_por_estilo(self, prompt_tipo: gp.PromptTipo | str) -> str:
+        prompt_tipo_normalizado = gp.normalizar_tipo(prompt_tipo)
+
+        if prompt_tipo_normalizado == gp.PromptTipo.CARTOON:
+            return self.CARTOON_MODEL
+
+        return self.DEFAULT_MODEL
+
+    def _resolver_requisicao(
+        self,
+        prompt_tipo: gp.PromptTipo,
+        prompt: str,
+        image: Image.Image,
+        logo: Image.Image,
+    ) -> tuple[str, list, types.GenerateContentConfig]:
+        if prompt_tipo == gp.PromptTipo.CARTOON:
+            return (
+                self.CARTOON_MODEL,
+                [prompt, image, logo],
+                types.GenerateContentConfig(
+                    temperature=0.4,
+                    top_k=32,
+                    top_p=0.85,
+                    candidate_count=1,
+                    image_config=types.ImageConfig(aspect_ratio="9:16"),
+                ),
+            )
+
+        return (
+            self.DEFAULT_MODEL,
+            [prompt, image, logo],
+            types.GenerateContentConfig(
+                image_config=types.ImageConfig(aspect_ratio="9:16")
+            ),
         )
 
     def _extrair_e_salvar(self, response, telegram_id: int) -> Path:

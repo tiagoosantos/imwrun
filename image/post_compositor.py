@@ -1,5 +1,4 @@
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
-from pathlib import Path
+from PIL import Image, ImageDraw, ImageFont
 
 
 class PostCompositor:
@@ -14,19 +13,14 @@ class PostCompositor:
         self,
         foto_usuario_path: str,
         dados: dict,
-        output_path: str
+        output_path: str,
     ):
 
-        # 🎨 Base preta
         base = Image.new("RGBA", (self.WIDTH, self.HEIGHT), (0, 0, 0, 255))
 
-        # 📷 Foto do usuário
         foto = Image.open(foto_usuario_path).convert("RGBA")
-
-        # Ajustar proporção mantendo centro
         foto = self._resize_cover(foto, self.WIDTH, self.HEIGHT)
 
-        # Escurecer levemente para texto ficar legível
         overlay = Image.new("RGBA", (self.WIDTH, self.HEIGHT), (0, 0, 0, 120))
         foto = Image.alpha_composite(foto, overlay)
 
@@ -34,20 +28,17 @@ class PostCompositor:
 
         draw = ImageDraw.Draw(base)
 
-        # 🔤 Fontes
         font_titulo = ImageFont.truetype("assets/fonts/Montserrat-Bold.ttf", 90)
         font_dados = ImageFont.truetype("assets/fonts/Montserrat-SemiBold.ttf", 70)
 
-        # 🏃 Título
         draw.text(
             (self.WIDTH // 2, 250),
-            "TREINO CONCLUÍDO",
+            "TREINO CONCLUIDO",
             font=font_titulo,
             fill="white",
-            anchor="mm"
+            anchor="mm",
         )
 
-        # 📊 Dados do treino
         texto_dados = (
             f"{dados['distancia']} km\n"
             f"{dados['tempo']}\n"
@@ -62,10 +53,9 @@ class PostCompositor:
             fill="white",
             anchor="mm",
             align="center",
-            spacing=20
+            spacing=20,
         )
 
-        # 🏷 Logo
         logo = Image.open(self.logo_path).convert("RGBA")
         logo = logo.resize((220, 220), Image.LANCZOS)
 

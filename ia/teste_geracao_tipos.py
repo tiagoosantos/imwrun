@@ -100,7 +100,8 @@ def main():
     print("")
 
     for prompt_tipo in PromptTipo:
-        print(f"[INICIO] Gerando estilo: {prompt_tipo.value}")
+        modelo = service.obter_modelo_por_estilo(prompt_tipo)
+        print(f"[INICIO] Gerando estilo: {prompt_tipo.value} | modelo: {modelo}")
 
         caminho_gerado = service.gerar_imagem_estilizada(
             telegram_id=telegram_id,

@@ -1,203 +1,340 @@
-# 🏃‍♂️ Corrida Bot
+# IMW Runner Bot
 
-Bot de Telegram para registro e acompanhamento de corridas, com cálculo
-de pace, rankings e estatísticas mensais.
+Bot de Telegram para registro de treinos, leitura de imagens de aplicativos de corrida, calculo de pace, rankings, relatorios e geracao de posts com composicao local e imagem por IA.
 
-Projeto desenvolvido com arquitetura em camadas (Telegram → Service →
-Repository → PostgreSQL), seguindo boas práticas de separação de
-responsabilidades.
+O projeto usa arquitetura em camadas e concentra a entrada no Telegram, as regras de negocio em `service/`, a persistencia em `repository/` e o acesso ao PostgreSQL em `database/`.
 
-------------------------------------------------------------------------
+---
 
-# 🚀 Funcionalidades
+# Funcionalidades
 
--   Registro de corrida passo a passo\
--   Cálculo automático de pace\
--   Possibilidade de informar pace manual\
--   Ranking por quilometragem\
--   Ranking por tempo total\
--   Estatísticas mensais\
--   Validação robusta de entrada\
--   Cancelamento com `sair` em qualquer etapa\
--   Wrapper resiliente com auto-restart\
--   Logs estruturados
+- Cadastro e atualizacao de usuario no primeiro `/start`
+- Registro manual de treino em fluxo guiado
+- Leitura de imagem de treino via Gemini Vision
+- Calculo de pace com entrada validada
+- Rankings por quilometragem e por tempo
+- Relatorio mensal
+- Respostas conversacionais sobre corrida com Gemini
+- Geracao de post com layout local
+- Geracao adicional de imagem por IA com estilos selecionaveis
+- Limite diario e controle simples de taxa para geracao de posts
+- Wrapper com reinicio do polling em caso de falha
+- Logs estruturados
 
-------------------------------------------------------------------------
+---
 
-# 🧱 Arquitetura
+# Arquitetura
 
-    Telegram (Interface)
-            ↓
-    CorridaService (Regras de negócio)
-            ↓
-    CorridaRepository (Persistência)
-            ↓
-    PostgreSQL (Banco de dados)
+```text
+Telegram (bot/handlers)
+        ↓
+Services (service/)
+        ↓
+Repositories (repository/)
+        ↓
+PostgreSQL (database/)
+```
 
-Separação clara:
+Separacao principal:
 
--   Interface → apenas interação\
--   Service → regras e cálculos\
--   Repository → SQL puro\
--   Banco → armazenamento consistente (inteiros)
+- `bot/`: handlers, estados temporarios, teclados e fluxo de conversa
+- `service/`: regras de negocio, orquestracao dos fluxos e integracao com IA
+- `repository/`: consultas SQL e persistencia
+- `database/`: pool de conexoes
+- `image/`: geracao local das imagens de post
+- `ia/`: Gemini para chat, analise de treino e geracao de imagem
+- `utils/`: logging e utilitarios diversos
 
-------------------------------------------------------------------------
+---
 
-# 🗄 Modelagem do Banco
+# Fluxos Principais
 
-Todas as métricas são armazenadas como **inteiros**, evitando problemas
-com float.
+## Registro de treino
 
-## 📌 Tabela `usuarios`
+- O usuario inicia pelo menu ou por comando
+- O bot conduz o preenchimento dos dados
+- Tambem e possivel enviar uma imagem de treino
+- A imagem e analisada pelo `TreinoVisionService`
+- Os dados consolidados sao gravados no banco
 
--   telegram_id BIGINT PRIMARY KEY\
--   nome VARCHAR(100)\
--   criado_em TIMESTAMP
+## Geracao de post
 
-## 📌 Tabela `corridas`
+- O usuario escolhe um treino recente
+- O bot solicita uma foto
+- Sempre e gerada ao menos uma imagem local com `image/post_generator.py`
+- Se `GEMINI_ATIVO = True`, o bot pergunta o estilo da imagem IA
+- O `PostService` retorna as imagens locais e, quando ativo, tambem a imagem gerada pelo Gemini
 
--   id SERIAL PRIMARY KEY\
--   telegram_id BIGINT\
--   tempo_segundos INTEGER\
--   distancia_metros INTEGER\
--   pace_segundos INTEGER\
--   pace_origem VARCHAR(20)\
--   passos INTEGER\
--   calorias INTEGER\
--   data_corrida TIMESTAMP
+Estilos de IA atualmente disponiveis:
 
-------------------------------------------------------------------------
+- `premium`
+- `clean`
+- `artistico`
+- `cartoon`
 
-# 📊 Rankings
+---
 
-### Ranking por KM
+# Estrutura do Projeto
 
-Ordenado por soma de distância.
+```text
+imwrun/
+├── main.py
+├── main_test.py
+├── wrapper.py
+├── README.md
+├── requirements.txt
+├── assets/
+├── bot/
+│   ├── handlers/
+│   ├── keyboards/
+│   ├── state/
+│   ├── ui/
+│   └── utils/
+├── config/
+├── database/
+├── generated_images/
+│   └── teste/
+├── ia/
+│   ├── gemini.py
+│   ├── gemini_image_service.py
+│   ├── gemini_prompt.py
+│   ├── instrucoes_gemini.txt
+│   └── teste_geracao_tipos.py
+├── image/
+│   ├── layouts/
+│   ├── styles/
+│   └── utils/
+├── repository/
+├── service/
+├── SQL/
+├── temp/
+│   └── posts/
+└── utils/
+    └── logging/
+```
 
-### Ranking por Tempo
+Arquivos centrais:
 
-Ordenado por soma de tempo total em segundos.
+- [main.py](/c:/Users/x002426/OneDrive%20-%20rede.sp/Documentos/Projetos%20e%20Dumps/Python/imwrun/main.py): ponto de entrada principal
+- [wrapper.py](/c:/Users/x002426/OneDrive%20-%20rede.sp/Documentos/Projetos%20e%20Dumps/Python/imwrun/wrapper.py): loop resiliente do bot
+- [bot/telegram.py](/c:/Users/x002426/OneDrive%20-%20rede.sp/Documentos/Projetos%20e%20Dumps/Python/imwrun/bot/telegram.py): montagem do bot, servicos e handlers
+- [service/post_service.py](/c:/Users/x002426/OneDrive%20-%20rede.sp/Documentos/Projetos%20e%20Dumps/Python/imwrun/service/post_service.py): orquestracao da geracao de posts
+- [ia/gemini_image_service.py](/c:/Users/x002426/OneDrive%20-%20rede.sp/Documentos/Projetos%20e%20Dumps/Python/imwrun/ia/gemini_image_service.py): geracao de imagem com Gemini
+- [ia/gemini_prompt.py](/c:/Users/x002426/OneDrive%20-%20rede.sp/Documentos/Projetos%20e%20Dumps/Python/imwrun/ia/gemini_prompt.py): templates e renderizacao de prompts de imagem
 
-------------------------------------------------------------------------
+---
 
-# 🧠 Regras de Negócio
+# IA no Projeto
 
--   Se o usuário informar pace manual → sistema valida e usa\
--   Se informar `0` → pace é calculado automaticamente\
--   Distância aceita múltiplos formatos:
-    -   `5`
-    -   `5.2`
-    -   `5,250`
-    -   `5250`
--   Tempo aceita:
-    -   `MM:SS`
-    -   `MM.SS`
-    -   com ou sem espaços\
--   Em qualquer etapa, digitar `sair` cancela a operação
+## Chat com Gemini
 
-------------------------------------------------------------------------
+O modulo [ia/gemini.py](/c:/Users/x002426/OneDrive%20-%20rede.sp/Documentos/Projetos%20e%20Dumps/Python/imwrun/ia/gemini.py) mantem:
 
-# 📦 Estrutura do Projeto
+- modelos em fallback para respostas textuais
+- historico curto por usuario
+- cache simples de respostas
+- leitura das instrucoes em `ia/instrucoes_gemini.txt`
 
-    corrida_bot/
-    │
-    ├── main.py
-    ├── wrapper.py
-    ├── telegram.py
-    ├── corrida_service.py
-    ├── repository/
-    │   └── corrida_repository.py
-    ├── database/
-    │   └── connection.py
-    ├── utils/
-    │   ├── parse_utils.py
-    │   └── format_utils.py
+## Analise de imagem de treino
 
-------------------------------------------------------------------------
+O servico [vision_service.py](/c:/Users/x002426/OneDrive%20-%20rede.sp/Documentos/Projetos%20e%20Dumps/Python/imwrun/service/vision_service.py) usa Gemini para identificar:
 
-# ⚙️ Instalação
+- se a imagem representa um treino
+- distancia
+- tempo
+- pace
+- data
+- tipo
 
-## 1️⃣ Clonar repositório
+## Geracao de imagem para post
 
-    git clone https://github.com/seu-usuario/corrida-bot.git
-    cd corrida-bot
+O servico [gemini_image_service.py](/c:/Users/x002426/OneDrive%20-%20rede.sp/Documentos/Projetos%20e%20Dumps/Python/imwrun/ia/gemini_image_service.py) recebe:
 
-## 2️⃣ Criar ambiente virtual
+- `telegram_id`
+- caminho da foto base
+- dados do treino
+- `prompt_tipo`
+- instrucao extra opcional
 
-    python -m venv venv
-    source venv/bin/activate  # Linux
-    venv\Scripts\activate     # Windows
+Os prompts sao centralizados em [gemini_prompt.py](/c:/Users/x002426/OneDrive%20-%20rede.sp/Documentos/Projetos%20e%20Dumps/Python/imwrun/ia/gemini_prompt.py) por meio de `PromptTipo` e `render_prompt(...)`.
 
-## 3️⃣ Instalar dependências
+---
 
-    pip install -r requirements.txt
+# Banco de Dados
 
-Principais libs:
+O projeto usa PostgreSQL com pool de conexoes em [database/connection.py](/c:/Users/x002426/OneDrive%20-%20rede.sp/Documentos/Projetos%20e%20Dumps/Python/imwrun/database/connection.py).
 
--   pyTelegramBotAPI\
--   psycopg2\
--   python-dotenv
+As credenciais sao carregadas de variaveis de ambiente e o pool e inicializado na montagem do bot.
 
-------------------------------------------------------------------------
+Arquivos SQL de apoio ficam em `SQL/`.
 
-# 🔐 Variáveis de Ambiente
+---
 
-Crie um `.env`:
+# Instalacao
 
-    TELEGRAM_TOKEN=seu_token_aqui
-    DB_HOST=localhost
-    DB_NAME=corrida
-    DB_USER=postgres
-    DB_PASSWORD=senha
+## 1. Clonar o repositorio
 
-------------------------------------------------------------------------
+```bash
+git clone <repo>
+cd imwrun
+```
 
-# ▶️ Executar
+## 2. Criar ambiente virtual
 
-    python main.py
+```bash
+python -m venv venv
+```
 
-O wrapper mantém o bot ativo mesmo em caso de erro.
+Windows:
 
-------------------------------------------------------------------------
+```powershell
+venv\Scripts\activate
+```
 
-# 📈 Exemplo de Exibição
+## 3. Instalar dependencias
 
-    🏃 Corrida #12
-    ⏱ Tempo: 45:30
-    📏 Distância: 5,25 km
-    🔥 Pace: 08:40/km
+```bash
+pip install -r requirements.txt
+```
 
-------------------------------------------------------------------------
+Dependencias principais do projeto:
 
-# 🛡 Boas Práticas Aplicadas
+- `pyTelegramBotAPI`
+- `psycopg2-binary`
+- `python-dotenv`
+- `google-genai`
+- `pillow`
+- `telegramify-markdown`
+- `opencv-python`
+- `mediapipe`
+- `pandas`
+- `openpyxl`
 
--   Sem uso de float para métricas\
--   Separação clara de camadas\
--   Logs estruturados\
--   Tratamento de exceções\
--   Retry automático no wrapper\
--   SQL parametrizado (evita SQL Injection)
+---
 
-------------------------------------------------------------------------
+# Variaveis de Ambiente
 
-# 🔮 Melhorias Futuras
+O projeto carrega o `.env` a partir de `c:/Users/x002426/.env` em [config/settings.py](/c:/Users/x002426/OneDrive%20-%20rede.sp/Documentos/Projetos%20e%20Dumps/Python/imwrun/config/settings.py).
 
--   Ranking por melhor pace\
--   Comparação de evolução\
--   Estatísticas semanais\
--   Exportação para Excel\
--   Dashboard web\
--   API REST\
--   Testes automatizados
+Variaveis utilizadas:
 
-------------------------------------------------------------------------
+```env
+IMW_HOST=
+IMW_PORT=
+IMW_DB=
+IMW_USER=
+IMW_PASS=
 
-# 📄 Licença
+BOT_IMWRUNNER=
+CHAT_ID=
+GROUP_ID=
+TELEBOT_TESTE_IA=
+GEMINI_TOKEN=
+
+smtp_username_nox=
+smtp_password_nox=
+smtp_server_nox=
+smtp_port_nox=
+sender_nox=
+
+smtp_user_prodam=
+smtp_password_prodam=
+smtp_server_prodam=
+smtp_port_prodam=
+sender_prodam=
+
+user_gmail=
+sender_gmail=
+smtp_password_gmail=
+smtp_server_gmail=
+smtp_port_gmail=
+```
+
+---
+
+# Execucao
+
+Execucao principal:
+
+```bash
+python main.py
+```
+
+Modo alternativo de teste manual:
+
+```bash
+python main_test.py
+```
+
+O `main.py` usa `BotWrapper`, que reinicia o polling quando ocorre falha no loop principal.
+
+---
+
+# Testes e Scripts de Apoio
+
+No momento o projeto nao possui uma suite automatizada formal com `pytest` ou `unittest`.
+
+Scripts manuais existentes:
+
+- [ia/teste_geracao_tipos.py](/c:/Users/x002426/OneDrive%20-%20rede.sp/Documentos%20e%20Dumps/Python/imwrun/ia/teste_geracao_tipos.py): gera imagens para todos os estilos de IA e salva em `generated_images/teste/`
+- [ia/teste_de_imagem.py](/c:/Users/x002426/OneDrive%20-%20rede.sp/Documentos%20e%20Dumps/Python/imwrun/ia/teste_de_imagem.py): experimento antigo de geracao de imagem
+- [ia/teste_de_imagem2.py](/c:/Users/x002426/OneDrive%20-%20rede.sp/Documentos%20e%20Dumps/Python/imwrun/ia/teste_de_imagem2.py): variacao de teste manual de imagem
+
+Exemplo de uso do teste de estilos:
+
+```powershell
+./Scripts/python.exe ia/teste_geracao_tipos.py
+```
+
+O proprio arquivo aceita configuracao direta no topo, incluindo:
+
+- foto base
+- distancia
+- tempo
+- pace
+- instrucao extra
+
+---
+
+# Boas Praticas Aplicadas
+
+- separacao clara entre interface, servicos e persistencia
+- pool de conexoes com PostgreSQL
+- uso de inteiros para metricas de treino
+- logs estruturados
+- fallback basico em operacoes de Gemini
+- prompts de imagem centralizados por tipo
+- fluxo de post com estados temporarios controlados
+- geracao em background para nao travar o atendimento do bot
+
+---
+
+# Limitacoes Atuais
+
+- nao ha suite automatizada de testes no repositorio
+- `ia/gemini.py` ainda concentra codigo legado e codigo atual no mesmo modulo
+- parte dos scripts em `ia/` e experimental
+- algumas mensagens e comentarios ainda estao em processo de padronizacao
+
+---
+
+# Melhorias Futuras
+
+- adicionar testes automatizados para prompts, servicos e handlers
+- separar melhor o codigo legado de IA
+- parametrizar melhor os limites de geracao
+- permitir configuracao dinamica dos estilos de post
+- expandir os estilos locais de `image/post_generator.py`
+- documentar o esquema SQL completo
+
+---
+
+# Licenca
 
 MIT
 
-------------------------------------------------------------------------
+---
 
-# 👨‍💻 Autor
+# Autor
 
 Tiago Oliveira Santos
