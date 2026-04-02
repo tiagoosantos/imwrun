@@ -155,3 +155,7 @@ MELHORIAS ESTRUTURAIS:
           * quantidade de treino
           * distancia total dos treinos
           * tempo total de treino
+
+
+obs.: 1-desativar registros de treinos ao invés de excluir então incluir na tabela que cuida do treinos a coluna ativo como booleano e se estiver False aquele treino foi desativado, tal ação só pode ser efetivada pelo administrador. 
+2-Sobre a questão de usar a ia para construir os inserts eu preciso explicar melhor, na verdade seria para a construção do projeto e ao invés de precisar mencionar com todos os detalhes e na linguagem sql o administrador informaria de forma textual algo como: "criar projeto '500 em 2025': objetivo 500k em 2025, distribuir as metas mensais com crescimento proporcional entre os meses de janeiro a agosto, começando com 20k em janeiro, a partir do mes de setembro deve haver uma queda proporcional entre os meses e no mês de dezembro também deve acabar com 20k" ou "criar projeto '20k por mês em 2025': sendo que a meta é cumprir 240k em 2025 e distribuir 20k como meta para todos os meses"
